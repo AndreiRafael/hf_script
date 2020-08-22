@@ -1,0 +1,38 @@
+file(GLOB_RECURSE sources ./*.c ./*.cpp ./*.h ./*.hpp)
+
+add_executable(${HF_GAME_TITLE} ${sources})
+
+if(WIN32)
+	if((${HF_PLATFORM} EQUAL x64))
+		file(GLOB_RECURSE libs ${CMAKE_SOURCE_DIR}/lib/win32/x64/*.lib)
+	else()
+		file(GLOB_RECURSE libs ${CMAKE_SOURCE_DIR}/lib/win32/x86/*.lib)
+	endif()
+	if(${HF_PLATFORM} EQUAL x64)
+		file(GLOB_RECURSE dlls ${CMAKE_SOURCE_DIR}/lib/win32/x64/*.dll)
+		set(MY_EXE_DIR "${CMAKE_SOURCE_DIR}/bin/win32/x64")
+	else()
+		file(GLOB_RECURSE dlls ${CMAKE_SOURCE_DIR}/lib/win32/x86/*.dll)
+		set(MY_EXE_DIR "${CMAKE_SOURCE_DIR}/bin/win32/x86")
+	endif()
+	
+	foreach(f ${dlls})
+		file(COPY ${f} DESTINATION ${MY_EXE_DIR})
+	endforeach()
+	target_link_libraries(${HF_GAME_TITLE} PUBLIC ${libs})
+endif(WIN32)
+if(UNIX)
+    set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+	target_link_libraries (${HF_GAME_TITLE} -lpthread)
+	
+	set(MY_EXE_DIR "${CMAKE_SOURCE_DIR}/bin/unix")
+endif(UNIX)
+
+file(GLOB resources ${CMAKE_SOURCE_DIR}/res/*)
+foreach(f ${resources})
+	file(COPY ${f} DESTINATION ${MY_EXE_DIR})
+endforeach()
+
+set_target_properties(${HF_GAME_TITLE} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${MY_EXE_DIR})
+set_target_properties(${HF_GAME_TITLE} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${MY_EXE_DIR})
+set_target_properties(${HF_GAME_TITLE} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${MY_EXE_DIR})
