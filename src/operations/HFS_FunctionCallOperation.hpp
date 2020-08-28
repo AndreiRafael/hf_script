@@ -2,18 +2,21 @@
 #define HFS_FUNCTIONOPERATION_HPP
 
 #include "HFS_Operation.hpp"
-#include "./HFS_ScriptRunner.hpp"
+#include "../HFS_ScriptRunner.hpp"
 
 namespace hfs {
     class FunctionCallOperation : public Operation {
     private:
         std::string function_name;
-        std::vector<Operation*> parameters;
         ScriptRunner* runner;
     public:
-        FunctionCallOperation(const std::string function_name, const std::vector<Operation*> parameters, ScriptRunner* const runner);
+        FunctionCallOperation(const std::string function_name, ScriptRunner* const runner);
 
-        Variable run(Scope* const scope) const;
+        OperationResult run(Scope* const scope,
+                            const std::vector<Variable> values,
+                            Variable* const returned_value,
+                            Operation** const next_operation,
+                            Scope** next_scope) const final;
     };
 }
 

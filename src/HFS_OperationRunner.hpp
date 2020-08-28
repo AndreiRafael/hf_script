@@ -8,7 +8,7 @@ namespace hfs {
     enum class RunnerResult {
         Ongoing,//did not finish execution, can call step again immediatly
         Wait,   //did not finish execution, but was told to wait
-        Return  //finished execution, and get_result returns a valid variable
+        Return  //finished execution, guaranteeing get_result returns a valid variable
     };
     
     class OperationRunner {
@@ -23,15 +23,16 @@ namespace hfs {
         std::vector<Variable> values;
 
     public:
-        OperationRunner();
-
         void setup(Operation* const start_operation, Scope* const scope);
 
         /**
-         * \brief Steps the operator once, returns true and fills \param value if finished running
+         * \brief Steps the operator once, returns the result of the step and fills \param value if finished running
          */
         RunnerResult step();
 
+        /**
+         * \brief Gets the result of running the operation, only valid after \ref returns RunnerResult::Return
+         */
         Variable get_result();
     };
 }

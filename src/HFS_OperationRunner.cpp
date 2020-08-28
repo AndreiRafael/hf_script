@@ -13,15 +13,15 @@ namespace hfs {
     RunnerResult OperationRunner::step() {
         auto requirements = operation->get_requirements();
         if(req_index >= requirements.size()) {
-            const auto op_result = operation->run(scope, values, &result);
+            Scope* next_scope;
+            const auto op_result = operation->run(scope, values, &result, &operation, &next_scope);
             switch (op_result)
             {
             case OperationResult::Return://when an operation returns, go to the next one. Return if this is the last one
-                operation == operation->get_next_operation();
                 if(operation == nullptr) {
                     return RunnerResult::Return;
                 }
-                setup(operation, scope);// TODO: as paradas do escopo ser determinado e etc possivelmente irão aqui
+                setup(operation, next_scope);
                 return RunnerResult::Ongoing;
             case OperationResult::Wait://operation asked us to wait...
                 return RunnerResult::Wait;
@@ -48,7 +48,7 @@ namespace hfs {
         return RunnerResult::Ongoing;
     }
 
-    Variable OperationRunner::get_result() {
+    Variable OperationRunner::get_result() {// TODO: This name is very confusing
         return result;
     }
 }

@@ -13,7 +13,11 @@ namespace hfs {
     public:
         SetOperation(const std::string variable_name, Operation* const value);
 
-        OperationResult run(Scope* const scope, std::vector<Variable> values, Variable* const return_value) const final;
+        OperationResult run(Scope* const scope,
+                            std::vector<Variable> values,
+                            Variable* const return_value,
+                            Operation** const next_operation,
+                            Scope** next_scope) const final;
     };
 }
 

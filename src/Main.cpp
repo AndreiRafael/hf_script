@@ -4,6 +4,7 @@
 #include "basic/HFS_Math.hpp"
 #include "basic/HFS_Essentials.hpp"
 #include "operations/HFS_Operations.hpp"
+#include "HFS_ScriptRunner.hpp"
 
 int main(int argc, char* argv[]) {
     std::cout << "Hello World!";
@@ -15,7 +16,10 @@ int main(int argc, char* argv[]) {
     hfs::Operation* value = new hfs::RawValueOperation("10");
     hfs::Operation* set = new hfs::SetOperation("lol", value);
 
-    auto v = set->run(&main_scope);
+    hfs::ScriptRunner runner;
+    runner.load_script("C:/Users/andre/OneDrive/Documentos/script.hfs");
+
+    //auto v = set->run(&main_scope);
 
     return 0;
 }

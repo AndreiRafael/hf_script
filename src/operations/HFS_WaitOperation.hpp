@@ -1,21 +1,19 @@
-#ifndef HFS_RAWVALUEOPERATION_HPP
-#define HFS_RAWVALUEOPERATION_HPP
+#ifndef HFS_WAITOPERATION_HPP
+#define HFS_WAITOPERATION_HPP
 
 #include "HFS_Operation.hpp"
 
 namespace hfs {
-    class RawValueOperation : public Operation {
-    private:
-        std::string value;
+    class WaitOperation : public Operation {
     public:
-        RawValueOperation(const std::string value);
+        WaitOperation(const std::string variable_name, Operation* const value);
 
         OperationResult run(Scope* const scope,
                             std::vector<Variable> values,
-                            Variable* const value,
+                            Variable* const return_value,
                             Operation** const next_operation,
                             Scope** next_scope) const final;
     };
 }
 
-#endif
+#endif//HFS_WAITOPERATION_HPP
