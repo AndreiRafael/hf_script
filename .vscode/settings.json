@@ -73,6 +73,11 @@
         "random": "cpp",
         "string_view": "cpp",
         "any": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "regex": "cpp",
+        "bitset": "cpp",
+        "atomic": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp"
     }
 }

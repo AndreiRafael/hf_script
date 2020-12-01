@@ -2,6 +2,8 @@
 #define HFS_VARIABLE_HPP
 
 #include <string>
+#include <vector>
+#include <unordered_map>
 
 namespace hfs {
     enum class VariableType {
@@ -9,14 +11,15 @@ namespace hfs {
         Boolean,
         Integer,
         Float,
-        String
+        String,
+        Dictionary
     };
 
     class Variable {
     private:
         Variable(const std::string value);
 
-        std::string value;//the written value of the variable
+        std::string value;//the written value of the variable, which is parsed to determine variable type
         VariableType variable_type;
 
         //variable types for faster return calls
@@ -24,36 +27,41 @@ namespace hfs {
         int integer_value = 0;
         float float_value = 0.f;
         std::string string_value = "";//this exists because str value may be different than value when quotes are used
+        std::unordered_map<std::string, Variable> dictionary;
     public:
 
         static VariableType determine_type(const std::string value);
 
-        static Variable     create(const std::string value);
-        static Variable     create_boolean(const bool value);
-        static Variable     create_integer(const int value);
-        static Variable     create_float(const float value);
-        static Variable     create_string(const std::string value);
-        static Variable     create_null();
+        static Variable       create(const std::string value);
+        static Variable       create_boolean(const bool value);
+        static Variable       create_integer(const int value);
+        static Variable       create_float(const float value);
+        static Variable       create_string(const std::string value);
+        static Variable       create_dictionary(const std::vector<std::string> keys, const std::vector<Variable> value);
+        static Variable       create_null();
 
-        void                set(const std::string value);
-        void                set_boolean(const bool value);
-        void                set_integer(const int value);
-        void                set_float(const float value);
-        void                set_string(const std::string value);
-        void                set_null();
+        void                  set(const std::string value);
+        void                  set_boolean(const bool value);
+        void                  set_integer(const int value);
+        void                  set_float(const float value);
+        void                  set_string(const std::string value);
+        void                  set_dictionary_entry(std::string key, Variable value);//TODO:
+        void                  set_null();
 
-        bool                get_boolean_value() const;
-        int                 get_integer_value() const;
-        float               get_float_value() const;
-        std::string         get_string_value() const;
-        std::string         get_raw_value() const;
+        void                  copy(const Variable& other);//TODO:
 
-        VariableType        get_type() const;
-        VariableType        get_id() const;
+        bool                  get_boolean_value() const;
+        int                   get_integer_value() const;
+        float                 get_float_value() const;
+        std::string           get_string_value() const;
+        Variable              get_dictionary_entry(const std::string key) const;//TODO:
+        std::string           get_raw_value() const;
 
-        bool                is_number() const;
-        bool                is_null() const;
-        bool                is_equal(const Variable& other) const;
+        VariableType          get_type() const;
+
+        bool                  is_number() const;
+        bool                  is_null() const;
+        bool                  is_equal(const Variable& other) const;
     };
 }
 

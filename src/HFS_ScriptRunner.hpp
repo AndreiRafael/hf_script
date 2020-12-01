@@ -7,6 +7,7 @@
 #include <string_view>
 #include <functional>
 
+// TODO: restructure this class, so that it no longer loads files, but keeps an array of Scripts
 namespace hfs {
     class ScriptRunner {
     private:
@@ -22,7 +23,7 @@ namespace hfs {
         unsigned int id_gen = 0;
 
     public:
-        std::string load_script(std::string_view file_path);
+        bool load_script(std::string_view file_path, std::string* const error_string = nullptr);
 
         /**
          * \brief Binds a c++ function to a string that can be called inside scripts 

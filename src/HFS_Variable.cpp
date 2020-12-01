@@ -25,6 +25,15 @@ namespace hfs {
         if(value.compare("false") == 0 || value.compare("true") == 0) {
             return VariableType::Boolean;
         }
+
+        if(value.size() >= 2 && value[0] == '[') {//might be a dictionary, needs to be validated
+            int depth = 1;
+            bool literal = false;
+            for(int i = 1; i < value.size(); ++i) {
+
+            }
+        }
+
         return VariableType::String;
     }
 
@@ -81,6 +90,9 @@ namespace hfs {
             boolean_value = this->value.compare("true") == 0;
             integer_value = 0;
             float_value = 0.f;
+            break;
+        case VariableType::Dictionary:
+            //TODO: parse dictionary string
             break;
         case VariableType::String:
         case VariableType::Null:

@@ -10,14 +10,14 @@ int main(int argc, char* argv[]) {
     std::cout << "Hello World!";
 
     hfs::Scope main_scope;
-
     hfs::Scope child_scope(&main_scope);
 
     hfs::Operation* value = new hfs::RawValueOperation("10");
     hfs::Operation* set = new hfs::SetOperation("lol", value);
 
     hfs::ScriptRunner runner;
-    runner.load_script("C:/Users/andre/OneDrive/Documentos/script.hfs");
+    std::string error_string;
+    runner.load_script("C:/Users/andre/OneDrive/Documentos/script.hfs", &error_string);
 
     //auto v = set->run(&main_scope);
 
