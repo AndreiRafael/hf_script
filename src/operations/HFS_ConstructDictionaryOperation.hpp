@@ -1,19 +1,18 @@
-#ifndef HFS_WAITOPERATION_HPP
-#define HFS_WAITOPERATION_HPP
+#ifndef HFS_CONSTRUCTDICTIONARYOPERATION_HPP
+#define HFS_CONSTRUCTDICTIONARYOPERATION_HPP
 
-#include "HFS_SequentialOperation.hpp"
+#include "HFS_Operation.hpp"
 
 namespace hfs {
-    class WaitOperation : public SequentialOperation {
-    public:
-        WaitOperation(const std::string variable_name, Operation* const value);
-
+    class ConstructDictionaryOperation : public Operation {
         OperationResult run(Scope* const scope,
                             std::vector<Variable> values,
                             Variable* const return_value,
                             Operation** const next_operation,
                             Scope** next_scope) const final;
+
+        void add_pair(Operation* key_operation, Operation* value_operation);
     };
 }
 
-#endif//HFS_WAITOPERATION_HPP
+#endif

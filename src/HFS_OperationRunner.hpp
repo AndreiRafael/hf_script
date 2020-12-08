@@ -14,7 +14,7 @@ namespace hfs {
     class OperationRunner {
     private:
         int req_index = 0;
-        OperationRunner* child_runner;
+        OperationRunner* child_runner = nullptr;
 
         Operation* operation;
         Scope* scope;

@@ -4,6 +4,10 @@
 #include <sstream>
 
 namespace hfs {
+    Variable::Variable(const Variable& other) {
+        copy(other);
+    }
+
     Variable::Variable(const std::string value) {
         set(value);
     }
@@ -16,7 +20,7 @@ namespace hfs {
         auto num_count = std::count_if(value.begin(), value.end(), [] (char c) { return c >= 48 && c <=57; });
         auto dot_count = std::count_if(value.begin(), value.end(), [] (char c) { return c == 46; });
 
-        if((num_count + dot_count) == value.size() && dot_count <= 1) {//definetly a number
+        if(value.size() > 0 && (num_count + dot_count) == value.size() && dot_count <= 1) {//definetly a number
             if(dot_count == 1) {
                 return VariableType::Float;
             }
@@ -24,14 +28,6 @@ namespace hfs {
         }
         if(value.compare("false") == 0 || value.compare("true") == 0) {
             return VariableType::Boolean;
-        }
-
-        if(value.size() >= 2 && value[0] == '[') {//might be a dictionary, needs to be validated
-            int depth = 1;
-            bool literal = false;
-            for(int i = 1; i < value.size(); ++i) {
-
-            }
         }
 
         return VariableType::String;
@@ -59,13 +55,37 @@ namespace hfs {
         return Variable(ss.str());
     }
 
+    Variable Variable::create_dictionary(const std::vector<std::string> keys, const std::vector<Variable> values) {
+        Variable new_var = Variable("");
+        
+        auto itr_k = keys.begin();
+        auto itr_v = values.begin();
+        for(; itr_k != keys.end() && itr_v != values.end(); itr_k++, itr_v++) {
+            new_var.set_dictionary_entry(*itr_k, *itr_v);
+        }
+
+        return new_var;
+    }
+
+    Variable Variable::create_dictionary(const std::string key, const Variable value) {
+        std::vector<std::string> keys =  { key };
+        std::vector<Variable> values = { value };
+        return Variable::create_dictionary(keys, values);
+    }
+
+
     Variable Variable::create_null() {
         return Variable("null");
+    }
+
+    Variable Variable::create_copy(const Variable& other) {
+        return Variable(other);
     }
     
     void Variable::set(const std::string value) {
         this->value = value;
         this->variable_type = determine_type(value);
+        dictionary.clear();
 
         if(value[0] == '\"' && value[value.size() - 1] == '\"') {
             this->string_value = value.substr(1, value.size() - 2);
@@ -90,9 +110,6 @@ namespace hfs {
             boolean_value = this->value.compare("true") == 0;
             integer_value = 0;
             float_value = 0.f;
-            break;
-        case VariableType::Dictionary:
-            //TODO: parse dictionary string
             break;
         case VariableType::String:
         case VariableType::Null:
@@ -123,8 +140,44 @@ namespace hfs {
         set(ss.str());
     }
 
+    void Variable::set_dictionary_entry(std::string key, Variable value) {
+        if(variable_type != VariableType::Dictionary) {
+            this->variable_type = VariableType::Dictionary;
+            
+            this->boolean_value = false;
+            this->integer_value = 0;
+            this->float_value = 0.0f;
+            this->string_value = "";
+            this->value = "";
+        }
+
+
+        auto entry = dictionary.find(key);
+        if(value.get_type() == VariableType::Null) {//remove or avoid adding
+            if(entry != dictionary.end()) {
+                dictionary.erase(entry);
+            }
+        }
+        else {
+            dictionary.insert_or_assign(key, value);
+        }
+    }
+
     void Variable::set_null() {
         set("null");
+    }
+
+
+    void Variable::copy(const Variable& other) {
+        this->value = other.value;
+        this->variable_type = other.variable_type;
+
+        this->dictionary = other.dictionary;
+
+        this->boolean_value = other.boolean_value;
+        this->integer_value = other.integer_value;
+        this->float_value = other.float_value;
+        this->string_value = other.string_value;
     }
 
 
@@ -151,6 +204,26 @@ namespace hfs {
     VariableType Variable::get_type() const {
         return variable_type;
     }
+
+    Variable* Variable::get_dictionary_entry(const std::string key) {
+        auto itr = dictionary.find(key);
+        if(itr != dictionary.end()) {
+            return &itr->second;
+        }
+
+        return nullptr;
+    }
+
+    Variable* Variable::get_or_create_dictionary_entry(const std::string key, const Variable default_value) {
+        auto var = get_dictionary_entry(key);
+        if(var == nullptr) {
+            set_dictionary_entry(key, Variable::create_copy(default_value));
+            var = get_dictionary_entry(key);
+        }
+
+        return var;
+    }
+
 
     bool Variable::is_number() const {
         return variable_type == VariableType::Float || variable_type == VariableType::Integer;

@@ -12,5 +12,9 @@ namespace hfs {
             return OperationResult::Return;
         }
         return OperationResult::Wait;
+        
+
+        //TODO: setar valores de retorno/proxima operação/escopo
+        *next_operation = this->next_operation;
     }
 }

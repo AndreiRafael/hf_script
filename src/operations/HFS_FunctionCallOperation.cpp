@@ -21,7 +21,7 @@ namespace hfs {
                 new_scope->get_variable(names[i])->set(values[i].get_raw_value());
             }
 
-            *next_operation = script_function;
+            *next_operation = script_function; //TODO: como vai funcionar a saída da função??, pra continuar a execução do código depois da chamada??
             *next_scope = new_scope;
             *returned_value = Variable::create_null();
             return OperationResult::Return;

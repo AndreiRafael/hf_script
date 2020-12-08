@@ -35,6 +35,7 @@ namespace hfs {
             case RunnerResult::Return:
                 values.push_back(child_runner->get_result());
                 delete child_runner;
+                child_runner = nullptr;
                 req_index++;
                 return RunnerResult::Ongoing;
             default:
@@ -48,7 +49,7 @@ namespace hfs {
         return RunnerResult::Ongoing;
     }
 
-    Variable OperationRunner::get_result() {// TODO: This name is very confusing
+    Variable OperationRunner::get_result() {// TODO: This name is very confusing, feels like it is going to return a variable result
         return result;
     }
 }

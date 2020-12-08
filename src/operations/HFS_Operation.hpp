@@ -15,7 +15,7 @@ namespace hfs {
      */
     class Operation {
     private:
-        std::vector<Operation*> requirements;
+        std::vector<Operation*> requirements = std::vector<Operation*>(0);
     public:
         void add_requirement(Operation* operation);
         void clear_requirements();

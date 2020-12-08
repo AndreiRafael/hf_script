@@ -29,6 +29,7 @@ namespace hfs {
         std::string string_value = "";//this exists because str value may be different than value when quotes are used
         std::unordered_map<std::string, Variable> dictionary;
     public:
+        Variable(const Variable& other);
 
         static VariableType determine_type(const std::string value);
 
@@ -37,25 +38,33 @@ namespace hfs {
         static Variable       create_integer(const int value);
         static Variable       create_float(const float value);
         static Variable       create_string(const std::string value);
-        static Variable       create_dictionary(const std::vector<std::string> keys, const std::vector<Variable> value);
+        static Variable       create_dictionary(const std::vector<std::string> keys, const std::vector<Variable> values);
+        static Variable       create_dictionary(const std::string key, const Variable value);
         static Variable       create_null();
+        static Variable       create_copy(const Variable& other);
 
         void                  set(const std::string value);
         void                  set_boolean(const bool value);
         void                  set_integer(const int value);
         void                  set_float(const float value);
         void                  set_string(const std::string value);
-        void                  set_dictionary_entry(std::string key, Variable value);//TODO:
+        void                  set_dictionary_entry(std::string key, Variable value);
         void                  set_null();
 
-        void                  copy(const Variable& other);//TODO:
+        /**
+         * \brief Copies values of a variable into a new one
+         */
+        void                  copy(const Variable& other);
 
         bool                  get_boolean_value() const;
         int                   get_integer_value() const;
         float                 get_float_value() const;
         std::string           get_string_value() const;
-        Variable              get_dictionary_entry(const std::string key) const;//TODO:
         std::string           get_raw_value() const;
+
+        Variable*             get_dictionary_entry(const std::string key);
+        Variable*             get_or_create_dictionary_entry(const std::string key, const Variable default_value);
+
 
         VariableType          get_type() const;
 
