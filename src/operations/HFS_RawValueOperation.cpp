@@ -5,7 +5,11 @@ namespace hfs {
         this->value = value;
     }
 
-    OperationResult RawValueOperation::run(Scope* const scope, std::vector<Variable> values, Variable* const value, Operation** const next_operation, Scope** next_scope) const {
+    OperationResult RawValueOperation::internal_run(Scope* const scope,
+                                                    const std::vector<Variable>& values,
+                                                    Variable* const value,
+                                                    Operation** const next_operation,
+                                                    Scope** const next_scope) const {
         
         *value = Variable::create(this->value);
         *next_operation = nullptr;

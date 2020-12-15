@@ -18,7 +18,7 @@ namespace hfs {
         std::unordered_map<std::string, Operation*> bound_operations;//a cheap way to delay direct calls from start_function by a frame
 
         std::unordered_map<std::string, Operation*> script_functions;
-        std::unordered_map<std::string, std::vector<std::string>> function_parameters;
+        std::unordered_map<std::string, std::vector<std::string>> function_parameters;// TODO: this will go on teh script class
 
         unsigned int id_gen = 0;
 

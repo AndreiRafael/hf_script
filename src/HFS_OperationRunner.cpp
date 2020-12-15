@@ -1,30 +1,36 @@
 #include "HFS_OperationRunner.hpp"
 
 namespace hfs {
-    void OperationRunner::setup(Operation* const start_operation, Scope* const start_scope) {
-        operation = start_operation;
-        scope = start_scope;
+    void OperationRunner::clear_data() {
         req_index = 0;
 
         result = Variable::create_null();
         values.clear();
     }
 
+    void OperationRunner::setup(Operation* const start_operation, Scope* const start_scope) {
+        operation = start_operation;
+        scope = start_scope;
+        clear_data();
+    }
+
     RunnerResult OperationRunner::step() {
         auto requirements = operation->get_requirements();
         if(req_index >= requirements.size()) {
             Scope* next_scope;
-            const auto op_result = operation->run(scope, values, &result, &operation, &next_scope);
+            const auto op_result = operation->run(scope, values, &result, &operation, &scope);
             switch (op_result)
             {
             case OperationResult::Return://when an operation returns, go to the next one. Return if this is the last one
                 if(operation == nullptr) {
                     return RunnerResult::Return;
                 }
-                setup(operation, next_scope);
+                clear_data();
                 return RunnerResult::Ongoing;
             case OperationResult::Wait://operation asked us to wait...
                 return RunnerResult::Wait;
+            default://ERROR
+                return RunnerResult::Error;
             }
         }
 
@@ -38,6 +44,8 @@ namespace hfs {
                 child_runner = nullptr;
                 req_index++;
                 return RunnerResult::Ongoing;
+            case RunnerResult::Error:
+                return RunnerResult::Error;
             default:
                 return child_step;
             }
@@ -45,11 +53,11 @@ namespace hfs {
 
         auto req = requirements[req_index];
         child_runner = new OperationRunner();
-        child_runner->setup(req, scope);// TODO: ver como vão ser tratadas chamadas de função, que tem um escopo próprio
+        child_runner->setup(req, scope);
         return RunnerResult::Ongoing;
     }
 
-    Variable OperationRunner::get_result() {// TODO: This name is very confusing, feels like it is going to return a variable result
+    Variable OperationRunner::get_result() {// TODO: This name is very confusing, feels like it is going to return a RunnerResult
         return result;
     }
 }

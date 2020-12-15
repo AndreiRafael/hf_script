@@ -30,4 +30,8 @@ namespace hfs {
         starting_scope->variables.insert(std::make_pair(name, Variable::create_null()));
         return get_variable(name);
     }
+
+    Scope* Scope::get_parent() {
+        return parent_scope;
+    }
 }

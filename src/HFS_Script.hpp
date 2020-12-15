@@ -1,9 +1,11 @@
 #ifndef HFS_SCRIPT_HPP
 #define HFS_SCRIPT_HPP
 
+#include "operations/HFS_Operation.hpp"
 #include <string_view>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 namespace hfs {
     /**
@@ -14,6 +16,8 @@ namespace hfs {
     private:
         std::string error_string;//Text that informs an error with the file
         bool compiled = false;//True if script compiled successfully
+
+        std::unordered_map<std::string, std::pair<Operation*, std::vector<std::string>>> functions;
 
     public:
         /**

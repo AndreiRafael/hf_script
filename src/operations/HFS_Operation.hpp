@@ -6,6 +6,7 @@
 
 namespace hfs {
     enum class OperationResult {
+        Error,  //something went wrong, runner should stop and inform of that
         Return, //returned a value, generally breaking the execution of subsequent code
         Wait    //stopped executing by finding a wait operation
     };
@@ -16,10 +17,17 @@ namespace hfs {
     class Operation {
     private:
         std::vector<Operation*> requirements = std::vector<Operation*>(0);
-    public:
+
+    protected:
         void add_requirement(Operation* operation);
         void clear_requirements();
 
+        virtual OperationResult internal_run(Scope* const scope,
+                                    const std::vector<Variable>& values,
+                                    Variable* const returned_value,
+                                    Operation** const next_operation,
+                                    Scope** const next_scope) const = 0;
+    public:
         /**
          * \brief Gets the requirements that this Operation needs to complete before calling \ref run
          */
@@ -30,17 +38,17 @@ namespace hfs {
          * \param scope The scope to execute this operation in
          * \param returned_value A pointer to a Variable, filled if function returns OperationResult::Return
          * \param next_operation A pointer to be filled with the operation to be executed after this one
-         * \param next_scope A pointer to be filled with the scope to run the next operation.
+         * \param next_scope A pointer to be filled with the pointer to the scope to run the next operation.
          */
-        virtual OperationResult run(Scope* const scope,
-                                    std::vector<Variable> values,
+        OperationResult run(Scope* const scope,
+                                    const std::vector<Variable>& values,
                                     Variable* const returned_value,
                                     Operation** const next_operation,
-                                    Scope** next_scope) const = 0;
+                                    Scope** const next_scope) const;
         OperationResult run(Scope* const scope,
                             Variable* const returned_value,
                             Operation** const next_operation,
-                            Scope** next_scope) const;
+                            Scope** const next_scope) const;
     };
 }
 

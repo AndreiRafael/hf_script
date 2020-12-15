@@ -6,6 +6,7 @@
 
 namespace hfs {
     enum class RunnerResult {
+        Error,  //something wrong happened, cannot continue execution
         Ongoing,//did not finish execution, can call step again immediatly
         Wait,   //did not finish execution, but was told to wait
         Return  //finished execution, guaranteeing get_result returns a valid variable
@@ -21,6 +22,8 @@ namespace hfs {
         Variable result = Variable::create_null();
 
         std::vector<Variable> values;
+
+        void clear_data();
 
     public:
         void setup(Operation* const start_operation, Scope* const scope);

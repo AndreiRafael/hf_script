@@ -1,14 +1,12 @@
-#ifndef HFS_FUNCTIONOPERATION_HPP
-#define HFS_FUNCTIONOPERATION_HPP
+#ifndef HFS_VARIABLERETRIEVEOPERATION_HPP
+#define HFS_VARIABLERETRIEVEOPERATION_HPP
 
 #include "HFS_Operation.hpp"
-#include "../HFS_ScriptRunner.hpp"
 
 namespace hfs {
-    class FunctionCallOperation : public Operation {
+    class VariableRetrieveOperation : public Operation {
     private:
-        std::string function_name;
-        ScriptRunner* runner;
+        std::string variable_name = "";
 
     protected:
         OperationResult internal_run(Scope* const scope,
@@ -17,7 +15,7 @@ namespace hfs {
                             Operation** const next_operation,
                             Scope** const next_scope) const final;
     public:
-        FunctionCallOperation(const std::string function_name, ScriptRunner* const runner);
+        VariableRetrieveOperation(const std::string variable_name);
     };
 }
 

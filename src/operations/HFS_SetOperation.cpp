@@ -11,20 +11,25 @@ namespace hfs {
         add_requirement(value);
     }
 
-    OperationResult SetOperation::run(Scope* const scope, std::vector<Variable> values, Variable* const value, Operation** const next_operation, Scope** next_scope) const {
+    OperationResult SetOperation::internal_run(Scope* const scope,
+                                               const std::vector<Variable>& values, 
+                                               Variable* const returned_value,
+                                               Operation** const next_operation,
+                                               Scope** const next_scope) const {
         if(values.size() > 0) {
             auto var = scope->get_variable(variable_name);
             auto composed_value = Variable::create_copy(values[values.size() - 1]);
-            for(int i = values.size() - 2; i >= 0; --i) {
-                composed_value = Variable::create_dictionary(values[i].get_raw_value(), Variable::create_copy(composed_value));
+
+            for(auto i = 2; i <= values.size(); ++i) {
+                composed_value = Variable::create_dictionary(values[values.size() - i].get_raw_value(), Variable::create_copy(composed_value));
             }
 
             var->copy(composed_value);
 
-            *value = *var;
+            *returned_value = *var;
         }
         else {
-            *value = Variable::create_null();
+            *returned_value = Variable::create_null();
         }
         *next_operation = this->next_operation;
         *next_scope = scope;

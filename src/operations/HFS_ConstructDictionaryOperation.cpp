@@ -1,7 +1,11 @@
 #include "HFS_ConstructDictionaryOperation.hpp"
 
 namespace hfs{
-    OperationResult ConstructDictionaryOperation::run(Scope* const scope, std::vector<Variable> values, Variable* const return_value, Operation** const next_operation, Scope** next_scope) const {
+    OperationResult ConstructDictionaryOperation::internal_run(Scope* const scope,
+                                                               const std::vector<Variable>& values,
+                                                               Variable* const return_value,
+                                                               Operation** const next_operation,
+                                                               Scope** const next_scope) const {
         std::vector<std::string> new_keys;
         std::vector<Variable> new_values;
 
@@ -14,6 +18,8 @@ namespace hfs{
         }
 
         *return_value = Variable::create_dictionary(new_keys, new_values);
+        *next_operation = nullptr;
+        *next_scope = nullptr;
         return OperationResult::Return;
     }
 

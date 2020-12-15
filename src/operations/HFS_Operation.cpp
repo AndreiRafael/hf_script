@@ -13,7 +13,22 @@ namespace hfs {
         return requirements;
     }
 
-    OperationResult Operation::run(Scope* const scope, Variable* const return_value, Operation** const next_operation, Scope** next_scope) const {
+    OperationResult Operation::run(Scope* const scope,
+                                   Variable* const return_value,
+                                   Operation** const next_operation,
+                                   Scope** const next_scope) const {
         return run(scope, std::vector<Variable>(), return_value, next_operation, next_scope);
+    }
+
+    OperationResult Operation::run(Scope* const scope,
+                                   const std::vector<Variable>& values,
+                                   Variable* const return_value,
+                                   Operation** const next_operation,
+                                   Scope** const next_scope) const {
+        if(scope == nullptr || return_value == nullptr || next_operation == nullptr || next_scope == nullptr) {
+            return OperationResult::Error;
+        }
+
+        return internal_run(scope, values, return_value, next_operation, next_scope);
     }
 }

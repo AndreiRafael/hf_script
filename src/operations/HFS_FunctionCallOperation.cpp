@@ -6,11 +6,11 @@ namespace hfs {
         this->runner = runner;
     }
 
-    OperationResult FunctionCallOperation::run(Scope* const scope,
-                                               const std::vector<Variable> values, 
-                                               Variable* const returned_value,
-                                               Operation** const next_operation,
-                                               Scope** next_scope) const {
+    OperationResult FunctionCallOperation::internal_run(Scope* const scope,
+                                                        const std::vector<Variable>& values, 
+                                                        Variable* const returned_value,
+                                                        Operation** const next_operation,
+                                                        Scope** const next_scope) const {
         
         auto script_function = runner->get_script_function(function_name);
         if(script_function != nullptr) {//wil run script function

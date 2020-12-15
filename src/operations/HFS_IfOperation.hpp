@@ -8,14 +8,15 @@ namespace hfs {
     private:
         Operation* true_operation;
         Operation* false_operation;
-    public:
-        IfOperation(const std::string variable_name, Operation* const value);
 
-        OperationResult run(Scope* const scope,
-                            std::vector<Variable> values,
+    protected:
+        OperationResult internal_run(Scope* const scope,
+                            const std::vector<Variable>& values,
                             Variable* const return_value,
                             Operation** const next_operation,
-                            Scope** next_scope) const final;
+                            Scope** const next_scope) const final;
+    public:
+        IfOperation(const std::string variable_name, Operation* const value);
 
         /**
          * \brief Determines which operation will be next if the required operation returns true

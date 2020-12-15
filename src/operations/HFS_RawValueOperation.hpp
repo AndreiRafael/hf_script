@@ -7,14 +7,15 @@ namespace hfs {
     class RawValueOperation : public Operation {
     private:
         std::string value;
-    public:
-        RawValueOperation(const std::string value);
 
-        OperationResult run(Scope* const scope,
-                            std::vector<Variable> values,
+    protected:
+        OperationResult internal_run(Scope* const scope,
+                            const std::vector<Variable>& values,
                             Variable* const value,
                             Operation** const next_operation,
-                            Scope** next_scope) const final;
+                            Scope** const next_scope) const final;
+    public:
+        RawValueOperation(const std::string value);
     };
 }
 

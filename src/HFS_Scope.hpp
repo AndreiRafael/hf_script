@@ -19,6 +19,8 @@ namespace hfs {
          * \remarks Will return nullptr if the variable name has size 0 or if the name is "_" (global variable rule)
          */
         Variable* get_variable(const std::string name);
+
+        Scope* get_parent();
     };
 }
 

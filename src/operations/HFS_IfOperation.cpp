@@ -3,15 +3,24 @@
 #include <algorithm>
 
 namespace hfs {
-    OperationResult IfOperation::run(Scope* const scope, std::vector<Variable> values, Variable* const return_value, Operation** const next_operation, Scope** next_scope) const {
-        if(std::any_of(values.begin(), values.end(), [] (const Variable& var) { return var.get_type() == VariableType::Boolean && var.get_boolean_value(); } )) {
-            *next_scope = new Scope(scope);// TODO: how do we get rid of this later?? maybe in the runner, if there's no next op, we just delete it
+    OperationResult IfOperation::internal_run(Scope* const scope,
+                                              const std::vector<Variable>& values,
+                                              Variable* const return_value,
+                                              Operation** const next_operation,
+                                              Scope** const next_scope) const
+    {
+        if(std::any_of(values.begin(),
+                       values.end(),
+                       [] (const Variable& var) { return var.get_type() == VariableType::Boolean && var.get_boolean_value(); } ))
+        {
             *next_operation = true_operation;
         }
         else {
-            *next_scope = scope;
             *next_operation = false_operation;
         }
+
+        *next_scope = scope;
+        *return_value = Variable::create_null();
         return OperationResult::Return;
     }
 

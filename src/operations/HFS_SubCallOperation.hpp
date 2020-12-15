@@ -1,15 +1,10 @@
-#ifndef HFS_FUNCTIONOPERATION_HPP
-#define HFS_FUNCTIONOPERATION_HPP
+#ifndef HFS_SUBCALLOPERATION_HPP
+#define HFS_SUBCALLOPERATION_HPP
 
-#include "HFS_Operation.hpp"
-#include "../HFS_ScriptRunner.hpp"
+#include "HFS_SequentialOperation.hpp"
 
 namespace hfs {
-    class FunctionCallOperation : public Operation {
-    private:
-        std::string function_name;
-        ScriptRunner* runner;
-
+    class SubCallOperation : public SequentialOperation {
     protected:
         OperationResult internal_run(Scope* const scope,
                             const std::vector<Variable>& values,
@@ -17,8 +12,8 @@ namespace hfs {
                             Operation** const next_operation,
                             Scope** const next_scope) const final;
     public:
-        FunctionCallOperation(const std::string function_name, ScriptRunner* const runner);
+        SubCallOperation(Operation* operation);
     };
 }
 
-#endif
+#endif//HFS_SUBCALLOPERATION_HPP

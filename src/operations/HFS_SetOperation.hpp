@@ -11,15 +11,16 @@ namespace hfs {
     class SetOperation : public SequentialOperation {
     private:
         std::string variable_name;
+
+    protected:
+        OperationResult internal_run(Scope* const scope,
+                            const std::vector<Variable>& values,
+                            Variable* const returned_value,
+                            Operation** const next_operation,
+                            Scope** const next_scope) const final;
     public:
         SetOperation(const std::string variable_name, Operation* const value);
         SetOperation(const std::string variable_name, Operation* const value, std::vector<Operation*> dictionary_keys);
-
-        OperationResult run(Scope* const scope,
-                            std::vector<Variable> values,
-                            Variable* const return_value,
-                            Operation** const next_operation,
-                            Scope** next_scope) const final;
     };
 }
 
