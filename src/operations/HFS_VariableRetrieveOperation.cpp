@@ -15,11 +15,16 @@ namespace hfs {
 
         auto var = scope->get_variable(variable_name);
         if(var != nullptr) {
-            *returned_value = Variable::create_copy(*var);
-            return OperationResult::Return;
-        } 
+            Variable composedValue = *var;
+            for(int i = 0; i < values.size(); ++i) {
+                composedValue = *composedValue.get_dictionary_entry(values[i].get_raw_value());
+            }
+            *returned_value = composedValue;
+        }
+        else {
+            *returned_value = Variable::create_null();
+        }
 
-        *returned_value = Variable::create_null();
         return OperationResult::Return;
     }
 }

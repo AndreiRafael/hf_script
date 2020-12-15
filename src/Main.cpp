@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     std::string error_string;
 
     hfs::Script script;
-    script.load_from_file("D:/Users/andre/OneDrive/Documentos/script.hsc");
+    script.load_from_file("D:/Users/andre/OneDrive/Documentos/script.hfs");
 
     runner.load_script("C:/Users/andre/OneDrive/Documentos/script.hfs", &error_string);
 

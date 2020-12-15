@@ -24,10 +24,6 @@ namespace hfs {
         bool escaped = false;
         bool comment = false;
 
-        int bracket_depth = 0;
-        int paren_depth = 0;
-        int sqrbracket_depth = 0;
-
         std::string current_token = "";
         std::vector<std::string> tokens = std::vector<std::string>();
         for(auto c : text) {//read each char and transform them into tokens
@@ -60,68 +56,10 @@ namespace hfs {
                         current_token = "";
                     }
                 }
-                else if(c == '[' || c == ']') {
-                    switch (c)
-                    {
-                    case '[':
-                        ++sqrbracket_depth;
-                        break;                    
-                    default:
-                        if(--sqrbracket_depth < 0) {
-                            //TODO: ERROR
-                        }
-                        break;
-                    }
+                else if(c == '[' || c == ']' || c == '{' || c == '}' || c == '(' || c == ')'
+                     || c == ';' || c == '=' || c == ',' || c == ':')
+                {
                     if(current_token.size() > 0) {//push both current token and bracket as a token
-                        tokens.push_back(current_token);
-                        current_token = "";
-                    }
-                    std::stringstream ss;
-                    ss << c;
-                    tokens.push_back(ss.str());
-                }
-                else if(c == '{' || c == '}') {
-                    switch (c)
-                    {
-                    case '{':
-                        ++bracket_depth;
-                        break;                    
-                    default:
-                        if(--bracket_depth < 0) {
-                            //TODO: ERROR
-                        }
-                        break;
-                    }
-                    if(current_token.size() > 0) {//push both current token and bracket as a token
-                        tokens.push_back(current_token);
-                        current_token = "";
-                    }
-                    std::stringstream ss;
-                    ss << c;
-                    tokens.push_back(ss.str());
-                }
-                else if(c == '(' || c == ')') {
-                    switch (c)
-                    {
-                    case '(':
-                        ++paren_depth;
-                        break;                    
-                    default:
-                        if(--paren_depth < 0) {
-                            //TODO: ERROR
-                        }
-                        break;
-                    }
-                    if(current_token.size() > 0) {//push both current token and bracket as a token
-                        tokens.push_back(current_token);
-                        current_token = "";
-                    }
-                    std::stringstream ss;
-                    ss << c;
-                    tokens.push_back(ss.str());
-                }
-                else if(c == ';' || c == '=' || c == ',' || c == ':') {
-                    if(current_token.size() > 0) {
                         tokens.push_back(current_token);
                         current_token = "";
                     }
@@ -157,7 +95,16 @@ namespace hfs {
                     }
                 }
             }
+        }
 
+        int bracket_depth = 0;
+        int paren_depth = 0;
+        int sqrbracket_depth = 0;
+
+        std::string cmd_ender = "";
+        std::vector<std::string> cmd_tokens;
+        for(auto token : tokens) {
+            
         }
 
         return false;
