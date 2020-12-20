@@ -1,30 +1,30 @@
 #include "HFS_SetOperation.hpp"
 
 namespace hfs {
-    SetOperation::SetOperation(const std::string variable_name, Operation* const value) : SetOperation::SetOperation(variable_name, value, std::vector<Operation*>(0)) {}
-
-    SetOperation::SetOperation(const std::string variable_name, Operation* const value, std::vector<Operation*> dictionary_keys) {
-        this->variable_name = variable_name;
+    SetOperation::SetOperation(VariableRetrievalOperation* const retrieval_op, Operation* const value) {
+        this->retrieval_op = retrieval_op;
+        auto dictionary_keys = retrieval_op->get_requirements();
         for(auto key : dictionary_keys) {
             add_requirement(key);
         }
         add_requirement(value);
     }
 
-    OperationResult SetOperation::internal_run(Scope* const scope,
+    OperationResult SetOperation::internal_run(ScriptRunner* runner,
+                                               Scope* const scope,
                                                const std::vector<Variable>& values, 
                                                Variable* const returned_value,
                                                Operation** const next_operation,
                                                Scope** const next_scope) const {
         if(values.size() > 0) {
-            auto var = scope->get_variable(variable_name);
-            auto composed_value = Variable::create_copy(values[values.size() - 1]);
+            auto var = scope->get_variable(retrieval_op->get_variable_name());
+            auto value = Variable::create_copy(values[values.size() - 1]);
 
-            for(auto i = 2; i <= values.size(); ++i) {
-                composed_value = Variable::create_dictionary(values[values.size() - i].get_raw_value(), Variable::create_copy(composed_value));
+            for(auto i = 0; i < values.size() -1; ++i) {
+                var = var->get_or_create_dictionary_entry(values[i].get_raw_value(), value);
             }
 
-            var->copy(composed_value);
+            var->copy(value);
 
             *returned_value = *var;
         }

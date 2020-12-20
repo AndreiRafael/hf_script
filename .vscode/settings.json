@@ -78,6 +78,8 @@
         "bitset": "cpp",
         "atomic": "cpp",
         "compare": "cpp",
-        "concepts": "cpp"
+        "concepts": "cpp",
+        "set": "cpp",
+        "unordered_set": "cpp"
     }
 }

@@ -2,8 +2,6 @@
 
 namespace hfs {
     void OperationRunner::clear_data() {
-        req_index = 0;
-
         result = Variable::create_null();
         values.clear();
     }
@@ -14,11 +12,18 @@ namespace hfs {
         clear_data();
     }
 
-    RunnerResult OperationRunner::step() {
+    void OperationRunner::insert_values(std::vector<Variable> values) {
+        for(auto v : values) {
+            this->values.push_back(v);
+        }
+    }
+
+    RunnerResult OperationRunner::step(ScriptRunner* runner) {
         auto requirements = operation->get_requirements();
+        auto req_index = values.size();
         if(req_index >= requirements.size()) {
             Scope* next_scope;
-            const auto op_result = operation->run(scope, values, &result, &operation, &scope);
+            const auto op_result = operation->run(runner, scope, values, &result, &operation, &scope);
             switch (op_result)
             {
             case OperationResult::Return://when an operation returns, go to the next one. Return if this is the last one
@@ -35,14 +40,13 @@ namespace hfs {
         }
 
         if(child_runner != nullptr) {
-            const auto child_step = child_runner->step();
+            const auto child_step = child_runner->step(runner);
             switch (child_step)
             {
             case RunnerResult::Return:
                 values.push_back(child_runner->get_result());
                 delete child_runner;
                 child_runner = nullptr;
-                req_index++;
                 return RunnerResult::Ongoing;
             case RunnerResult::Error:
                 return RunnerResult::Error;

@@ -5,6 +5,8 @@
 #include <vector>
 
 namespace hfs {
+    class ScriptRunner;
+
     enum class OperationResult {
         Error,  //something went wrong, runner should stop and inform of that
         Return, //returned a value, generally breaking the execution of subsequent code
@@ -22,7 +24,8 @@ namespace hfs {
         void add_requirement(Operation* operation);
         void clear_requirements();
 
-        virtual OperationResult internal_run(Scope* const scope,
+        virtual OperationResult internal_run(ScriptRunner* runner,
+                                    Scope* const scope,
                                     const std::vector<Variable>& values,
                                     Variable* const returned_value,
                                     Operation** const next_operation,
@@ -40,12 +43,14 @@ namespace hfs {
          * \param next_operation A pointer to be filled with the operation to be executed after this one
          * \param next_scope A pointer to be filled with the pointer to the scope to run the next operation.
          */
-        OperationResult run(Scope* const scope,
-                                    const std::vector<Variable>& values,
-                                    Variable* const returned_value,
-                                    Operation** const next_operation,
-                                    Scope** const next_scope) const;
-        OperationResult run(Scope* const scope,
+        OperationResult run(ScriptRunner* runner,
+                            Scope* const scope,
+                            const std::vector<Variable>& values,
+                            Variable* const returned_value,
+                            Operation** const next_operation,
+                            Scope** const next_scope) const;
+        OperationResult run(ScriptRunner* runner,
+                            Scope* const scope,
                             Variable* const returned_value,
                             Operation** const next_operation,
                             Scope** const next_scope) const;

@@ -65,7 +65,6 @@ namespace hfs {
         Variable*             get_dictionary_entry(const std::string key);
         Variable*             get_or_create_dictionary_entry(const std::string key, const Variable default_value);
 
-
         VariableType          get_type() const;
 
         bool                  is_number() const;

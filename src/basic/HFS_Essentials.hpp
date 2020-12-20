@@ -9,6 +9,9 @@ namespace hfs {
     Variable not(std::vector<Variable> values);
     Variable and(std::vector<Variable> values);
     Variable or(std::vector<Variable> values);
+
+    Variable less(std::vector<Variable> values);
+    Variable greater(std::vector<Variable> values);
 }
 
 #endif

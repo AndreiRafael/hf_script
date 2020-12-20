@@ -1,7 +1,8 @@
 #include "HFS_FlattenScopeOperation.hpp"
 
 namespace hfs {
-    OperationResult FlattenScopeOperation::internal_run(Scope* const scope,
+    OperationResult FlattenScopeOperation::internal_run(ScriptRunner* runner,
+                                                        Scope* const scope,
                                                         const std::vector<Variable>& values,
                                                         Variable* const returned_value,
                                                         Operation** const next_operation,

@@ -11,10 +11,11 @@ namespace hfs {
         Wait,   //did not finish execution, but was told to wait
         Return  //finished execution, guaranteeing get_result returns a valid variable
     };
+
+    class ScriptRunner;
     
     class OperationRunner {
     private:
-        int req_index = 0;
         OperationRunner* child_runner = nullptr;
 
         Operation* operation;
@@ -27,11 +28,12 @@ namespace hfs {
 
     public:
         void setup(Operation* const start_operation, Scope* const scope);
+        void insert_values(std::vector<Variable> values);
 
         /**
          * \brief Steps the operator once, returns the result of the step and fills \param value if finished running
          */
-        RunnerResult step();
+        RunnerResult step(ScriptRunner* runner);
 
         /**
          * \brief Gets the result of running the operation, only valid after \ref returns RunnerResult::Return

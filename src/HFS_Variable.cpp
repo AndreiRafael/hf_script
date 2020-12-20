@@ -19,8 +19,14 @@ namespace hfs {
 
         auto num_count = std::count_if(value.begin(), value.end(), [] (char c) { return c >= 48 && c <=57; });
         auto dot_count = std::count_if(value.begin(), value.end(), [] (char c) { return c == 46; });
+        int hifen_count = 0;
+        if(value.size() > 0) {
+            if(value[0] == '-') {
+                hifen_count++;
+            }
+        }
 
-        if(value.size() > 0 && (num_count + dot_count) == value.size() && dot_count <= 1) {//definetly a number
+        if(value.size() > 0 && (num_count + dot_count + hifen_count) == value.size() && dot_count <= 1 && hifen_count <= 1) {//definetly a number
             if(dot_count == 1) {
                 return VariableType::Float;
             }

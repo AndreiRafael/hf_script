@@ -1,7 +1,8 @@
 #include "HFS_ConstructDictionaryOperation.hpp"
 
 namespace hfs{
-    OperationResult ConstructDictionaryOperation::internal_run(Scope* const scope,
+    OperationResult ConstructDictionaryOperation::internal_run(ScriptRunner* runner,
+                                                               Scope* const scope,
                                                                const std::vector<Variable>& values,
                                                                Variable* const return_value,
                                                                Operation** const next_operation,

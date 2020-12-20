@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 
 #include "HFS_Scope.hpp"
 #include "basic/HFS_Math.hpp"
@@ -7,42 +8,64 @@
 #include "HFS_ScriptRunner.hpp"
 #include "HFS_Script.hpp"
 
+hfs::Variable print(std::vector<hfs::Variable> values) {
+    for(int i = 0; i < values.size(); ++i) {
+        auto v = values[i];
+        switch (v.get_type())
+        {
+        case hfs::VariableType::Boolean:
+        case hfs::VariableType::Null:
+            std::cout << v.get_raw_value();
+            break;
+        case hfs::VariableType::String:
+            std::cout << v.get_string_value();
+            break;
+        case hfs::VariableType::Float:
+            std::cout << v.get_float_value();
+            break;
+        case hfs::VariableType::Integer:
+            std::cout << v.get_integer_value();
+            break;        
+        default:
+            std::cout << "{ dictionary }";
+        }
+    }
+    std::cout << '\n';
+    return hfs::Variable::create_null();
+}
+
+hfs::Variable read(std::vector<hfs::Variable> values) {
+    std::string line;
+    std::getline(std::cin, line);
+    return hfs::Variable::create(line);
+}
+
 int main(int argc, char* argv[]) {
-    std::cout << "Hello World!";
-
-    hfs::Scope main_scope;
-    hfs::Scope child_scope(&main_scope);
-
-    hfs::RawValueOperation first_key("first");
-    hfs::RawValueOperation second_key("second");
-    hfs::RawValueOperation value("10");
-
-    hfs::RawValueOperation value55("55");
-
-    hfs::VariableRetrieveOperation retrieve_op("_dictionary");
-
-    std::vector<hfs::Operation*> keys = { &first_key, &second_key };
-
-    hfs::SetOperation op1("_dictionary", &value, keys);
-    hfs::SetOperation op2("bruh", &value, keys);
-    op1.set_next_operation(&op2);
-    hfs::SetOperation op3("brother", &value55);
-    op2.set_next_operation(&op3);
-    hfs::SetOperation op4("copy", &retrieve_op);
-    op3.set_next_operation(&op4);
-
-    hfs::OperationRunner op_runner;
-    op_runner.setup(&op1, &child_scope);
-
-    while(op_runner.step() != hfs::RunnerResult::Return) {}
-
     hfs::ScriptRunner runner;
     std::string error_string;
 
     hfs::Script script;
-    script.load_from_file("D:/Users/andre/OneDrive/Documentos/script.hfs");
+    if(!script.load_from_file("D:/Users/andre/OneDrive/Documentos/script.hfs")) {
+        std::cout << "Script error: " << script.get_error() << '\n';
+    }
 
-    runner.load_script("C:/Users/andre/OneDrive/Documentos/script.hfs", &error_string);
+    runner.add_script(&script, &error_string);
+    std::function<hfs::Variable(std::vector<hfs::Variable>)> p = print;
+    std::function<hfs::Variable(std::vector<hfs::Variable>)> l = hfs::less;
+    std::function<hfs::Variable(std::vector<hfs::Variable>)> s = hfs::sum;
+    std::function<hfs::Variable(std::vector<hfs::Variable>)> r = read;
+    std::function<hfs::Variable(std::vector<hfs::Variable>)> g = hfs::greater;
+
+    runner.bind_function("print", p);
+    runner.bind_function("less", l, 2);
+    runner.bind_function("greater", g, 2);
+    runner.bind_function("sum", s);
+    runner.bind_function("read", r, 0);
+
+    runner.start_function("main", std::vector<hfs::Variable> ());
+    while(true) {
+        runner.step();
+    }
 
     //auto v = set->run(&main_scope);
 

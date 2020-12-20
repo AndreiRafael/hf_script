@@ -40,4 +40,18 @@ namespace hfs {
         return Variable::create_boolean(result);
     }
 
+
+    Variable less(std::vector<Variable> values) {
+        if(values[0].is_number() && values[1].is_number()) {
+            return Variable::create_boolean(values[0].get_float_value() < values[1].get_float_value());
+        }
+        return Variable::create_boolean(false);
+    }
+
+    Variable greater(std::vector<Variable> values) {
+        if(values[0].is_number() && values[1].is_number()) {
+            return Variable::create_boolean(values[0].get_float_value() > values[1].get_float_value());
+        }
+        return Variable::create_boolean(false);
+    }
 }

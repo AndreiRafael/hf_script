@@ -9,11 +9,12 @@ namespace hfs {
         std::string value;
 
     protected:
-        OperationResult internal_run(Scope* const scope,
-                            const std::vector<Variable>& values,
-                            Variable* const value,
-                            Operation** const next_operation,
-                            Scope** const next_scope) const final;
+        OperationResult internal_run(ScriptRunner* runner,
+                                     Scope* const scope,
+                                     const std::vector<Variable>& values,
+                                     Variable* const value,
+                                     Operation** const next_operation,
+                                     Scope** const next_scope) const final;
     public:
         RawValueOperation(const std::string value);
     };

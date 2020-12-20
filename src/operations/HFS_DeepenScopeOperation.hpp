@@ -8,9 +8,10 @@ namespace hfs {
      * \brief Creates a new scope, having the ran scope as parent
      * \sa hfs::FlattenScopeOperation 
      */
-    class DeepenScopeOperation : SequentialOperation {
+    class DeepenScopeOperation : public SequentialOperation {
     protected:
-        OperationResult internal_run(Scope* const scope,
+        OperationResult internal_run(ScriptRunner* runner,
+                                     Scope* const scope,
                                      const std::vector<Variable>& values,
                                      Variable* const returned_value,
                                      Operation** const next_operation,
