@@ -16,16 +16,13 @@ namespace hfs {
 
         auto var = scope->get_variable(variable_name);
         if(var != nullptr) {
-            Variable composedValue = *var;
             for(int i = 0; i < values.size(); ++i) {
-                auto entry = composedValue.get_dictionary_entry(values[i].get_raw_value());
-                if(entry == nullptr) {
-                    composedValue = Variable::create_null();
+                var = var->get_dictionary_entry(values[i].get_raw_value());
+                if(var == nullptr) {
                     break;
                 }
-                composedValue = *entry;
             }
-            *returned_value = composedValue;
+            *returned_value = var == nullptr ? Variable::create_null() : *var;
         }
         else {
             *returned_value = Variable::create_null();

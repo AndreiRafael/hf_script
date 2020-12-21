@@ -91,7 +91,7 @@ namespace hfs {
         if(from_script) {
             auto names = get_parameter_names(function_name, parameters.size());
             for(int i = 0; i < names.size() && i < parameters.size(); ++i) {
-                new_scope->get_variable(names[i])->copy(parameters[i]);
+                *new_scope->get_variable(names[i]) = parameters[i];
             }
         }
         else {

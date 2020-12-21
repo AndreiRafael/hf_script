@@ -30,7 +30,6 @@ hfs::Variable print(std::vector<hfs::Variable> values) {
             std::cout << "{ dictionary }";
         }
     }
-    std::cout << '\n';
     return hfs::Variable::create_null();
 }
 
@@ -38,6 +37,11 @@ hfs::Variable read(std::vector<hfs::Variable> values) {
     std::string line;
     std::getline(std::cin, line);
     return hfs::Variable::create(line);
+}
+
+hfs::Variable cls(std::vector<hfs::Variable> values) {//0
+    system("cls");
+    return hfs::Variable::create_null();
 }
 
 int main(int argc, char* argv[]) {
@@ -50,17 +54,12 @@ int main(int argc, char* argv[]) {
     }
 
     runner.add_script(&script, &error_string);
-    std::function<hfs::Variable(std::vector<hfs::Variable>)> p = print;
-    std::function<hfs::Variable(std::vector<hfs::Variable>)> l = hfs::less;
-    std::function<hfs::Variable(std::vector<hfs::Variable>)> s = hfs::sum;
-    std::function<hfs::Variable(std::vector<hfs::Variable>)> r = read;
-    std::function<hfs::Variable(std::vector<hfs::Variable>)> g = hfs::greater;
 
-    runner.bind_function("print", p);
-    runner.bind_function("less", l, 2);
-    runner.bind_function("greater", g, 2);
-    runner.bind_function("sum", s);
-    runner.bind_function("read", r, 0);
+    runner.bind_function("print", std::function<hfs::Variable(std::vector<hfs::Variable>)>(print));
+    runner.bind_function("read", std::function<hfs::Variable(std::vector<hfs::Variable>)>(read), 0);
+    runner.bind_function("cls", std::function<hfs::Variable(std::vector<hfs::Variable>)>(cls), 0);
+    hfs::basic::math::apply(&runner);
+    hfs::basic::essentials::apply(&runner);
 
     runner.start_function("main", std::vector<hfs::Variable> ());
     while(true) {

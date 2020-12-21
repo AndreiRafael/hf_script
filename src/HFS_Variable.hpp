@@ -19,18 +19,16 @@ namespace hfs {
     private:
         Variable(const std::string value);
 
-        std::string value;//the written value of the variable, which is parsed to determine variable type
-        VariableType variable_type;
+        std::string value = "";//the written value of the variable, which is parsed to determine variable type
+        VariableType variable_type = VariableType::Null;
 
         //variable types for faster return calls
         bool boolean_value = false;
         int integer_value = 0;
         float float_value = 0.f;
         std::string string_value = "";//this exists because str value may be different than value when quotes are used
-        std::unordered_map<std::string, Variable> dictionary;
+        std::unordered_map<std::string, Variable> dictionary = std::unordered_map<std::string, Variable>();
     public:
-        Variable(const Variable& other);
-
         static VariableType determine_type(const std::string value);
 
         static Variable       create(const std::string value);
@@ -50,11 +48,6 @@ namespace hfs {
         void                  set_string(const std::string value);
         void                  set_dictionary_entry(std::string key, Variable value);
         void                  set_null();
-
-        /**
-         * \brief Copies values of a variable into a new one
-         */
-        void                  copy(const Variable& other);
 
         bool                  get_boolean_value() const;
         int                   get_integer_value() const;

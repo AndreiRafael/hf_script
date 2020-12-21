@@ -5,13 +5,10 @@
 #include <vector>
 
 namespace hfs {
-    Variable equal(std::vector<Variable> values);
-    Variable not(std::vector<Variable> values);
-    Variable and(std::vector<Variable> values);
-    Variable or(std::vector<Variable> values);
-
-    Variable less(std::vector<Variable> values);
-    Variable greater(std::vector<Variable> values);
+    class ScriptRunner;
+    namespace basic::essentials {
+        void apply(ScriptRunner* runner);
+    }
 }
 
 #endif

@@ -268,6 +268,12 @@ namespace hfs{
                         while(++itr != tokens.end()) {
                             if(itr->token.compare(",") == 0) {
                                 if(paren_depth == 1) {//illegal char
+                                    sub_tokens.push_back(*itr);
+                                    TokenGroup condition(true, depth, sub_tokens);
+                                    if(!condition.compile(error_string)) {//try to compile token in search of relevant error
+                                        return false;
+                                    }
+                                    //TODO: free operation
                                     return make_error_unexpected(*itr);
                                 }
                             }
@@ -276,6 +282,11 @@ namespace hfs{
                             }
                             else if(itr->token.compare(")") == 0) {
                                 if(--paren_depth == 0) {//completed if arguments
+                                    TokenGroup condition(true, depth, sub_tokens);
+                                    if(!condition.compile(error_string)) {
+                                        return false;
+                                    }
+
                                     if(++itr == tokens.end()) {
                                         return make_error("Expected '{', but reached end of file '%t' ", *(itr - 1));
                                     }
@@ -283,18 +294,12 @@ namespace hfs{
                                         return make_error("Expected '{', found '%t' ", *itr);
                                     }
 
-                                    TokenGroup condition(true, depth, sub_tokens);
-                                    if(condition.compile(error_string)) {
-                                        clear_error();
-                                        compiled = true;
-                                        remaining_tokens = std::vector<Token>(itr, tokens.end());
-                                        next_depth = depth;
-                                        operation = new BranchOperation(condition.get_operation());
-                                        return true;
-                                    }
-                                    else {
-                                        return false;
-                                    }
+                                    clear_error();
+                                    compiled = true;
+                                    remaining_tokens = std::vector<Token>(itr, tokens.end());
+                                    next_depth = depth;
+                                    operation = new BranchOperation(condition.get_operation());
+                                    return true;
                                 }
                             }
                             sub_tokens.push_back(*itr);
@@ -378,7 +383,8 @@ namespace hfs{
                         type = TokenGroupType::SubCall;
                         auto itr = tokens.begin() + 2;
                         std::vector<Operation*> parameters;
-                        if(get_function_parameters(itr, &parameters) && itr != tokens.end() && itr->token.compare(";") == 0){//valid fcall
+                        bool param_res = get_function_parameters(itr, &parameters);
+                        if(param_res && itr != tokens.end() && itr->token.compare(";") == 0){//valid fcall
                             clear_error();
                             compiled = true;// TODO: this does not guarantee compilation
                             remaining_tokens = std::vector<Token>(++itr, tokens.end());
@@ -389,7 +395,10 @@ namespace hfs{
                         }
                         else {
                             //TODO: delete operations
-                            if(itr == tokens.end()) {
+                            if(!param_res) {
+                                return false;
+                            }
+                            else if(itr == tokens.end()) {
                                 return make_error("Expected ';', reached end of file", *--itr);
                             }
                             else if(itr->token.compare(";") != 0) {
@@ -449,6 +458,12 @@ namespace hfs{
                             }
                         }
                     }
+                }
+                else {
+                    if(first_token.token.compare("func") == 0) {
+                        return make_error("Invalid token: '%t', you may be missing a '}'", first_token);
+                    }
+                    return make_error("Invalid token: '%t'", first_token);
                 }
             }
             else {//subgroup
@@ -524,8 +539,11 @@ namespace hfs{
                         auto itr = tokens.begin() + 2;
                         std::vector<Operation*> parameters;
                         if(get_function_parameters(itr, &parameters)){
+                            if(itr != tokens.end()) {
+                                return make_error_unexpected(*itr);//clear param ops
+                            }
                             clear_error();
-                            compiled = true;// TODO: this does not guarantee compilation
+                            compiled = true;
                             remaining_tokens = std::vector<Token>();
                             next_depth = depth;
 
@@ -554,37 +572,16 @@ namespace hfs{
 
                     std::vector<std::pair<TokenGroup, TokenGroup>> entries = std::vector<std::pair<TokenGroup, TokenGroup>>();
                     while(++itr != tokens.end()) {
-                        if(itr->token.compare("]") == 0 && --sqr_bracket_depth == 0) {
-                            if(++itr != tokens.end()) {
-                                return make_error_unexpected(*itr);
-                            }
-
-                            ConstructDictionaryOperation* construct_op = new ConstructDictionaryOperation();
-                            for(auto pair : entries) {
-                                if(pair.first.compile(error_string) && pair.second.compile(error_string)) {
-                                    construct_op->add_pair(pair.first.get_operation(), pair.second.get_operation());
-                                }
-                                else {
-                                    // TODO: delete unused ops
-                                    return false;
-                                }
-                            }
-
-                            clear_error();
-                            compiled = true;
-                            remaining_tokens = std::vector<Token>();
-                            next_depth = depth;
-                            
-                            operation = construct_op;
-                            return true;
-                        }
-                        else if(itr->token.compare(",") == 0 && sqr_bracket_depth == 1) {//finish entry
+                        if((itr->token.compare(",") == 0 && sqr_bracket_depth == 1) ||
+                           (itr->token.compare("]") == 0 && --sqr_bracket_depth == 0)) {//finish entry
                             Token fallback_key = { std::to_string(fallback_index++), itr->line, itr->column };
 
                             TokenGroup key_group(true, depth, separator_found ? sub_tokens_1 : std::vector<Token> { fallback_key });
                             TokenGroup value_group(true, depth, separator_found ? sub_tokens_2 : sub_tokens_1);
 
-                            entries.push_back(std::make_pair(key_group, value_group));
+                            if(value_group.tokens.size() > 0 || itr->token.compare("]") != 0) {//only pushes if needed
+                                entries.push_back(std::make_pair(key_group, value_group));
+                            }
 
                             sub_tokens_1.clear();
                             sub_tokens_2.clear();
@@ -601,6 +598,33 @@ namespace hfs{
                                 sqr_bracket_depth++;
                             }
                             (separator_found ? sub_tokens_2 : sub_tokens_1).push_back(*itr);
+                        }
+
+                        if(itr->token.compare("]") == 0 && sqr_bracket_depth == 0) {
+                            if(++itr != tokens.end()) {
+                                return make_error_unexpected(*itr);
+                            }
+
+                            ConstructDictionaryOperation* construct_op = new ConstructDictionaryOperation();
+                            for(auto pair : entries) {
+                                if(pair.first.compile(error_string) && pair.second.compile(error_string)) {
+                                    construct_op->add_pair(pair.first.get_operation(), pair.second.get_operation());
+                                }
+                                else {
+                                    // TODO: delete unused ops
+                                    return false;
+                                }
+                            }
+
+
+
+                            clear_error();
+                            compiled = true;
+                            remaining_tokens = std::vector<Token>();
+                            next_depth = depth;
+                            
+                            operation = construct_op;
+                            return true;
                         }
                     }
                 }

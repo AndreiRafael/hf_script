@@ -24,7 +24,7 @@ namespace hfs {
                 var = var->get_or_create_dictionary_entry(values[i].get_raw_value(), value);
             }
 
-            var->copy(value);
+            *var = value;
 
             *returned_value = *var;
         }

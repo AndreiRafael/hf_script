@@ -4,10 +4,6 @@
 #include <sstream>
 
 namespace hfs {
-    Variable::Variable(const Variable& other) {
-        copy(other);
-    }
-
     Variable::Variable(const std::string value) {
         set(value);
     }
@@ -63,6 +59,7 @@ namespace hfs {
 
     Variable Variable::create_dictionary(const std::vector<std::string> keys, const std::vector<Variable> values) {
         Variable new_var = Variable("");
+        new_var.variable_type = VariableType::Dictionary;
         
         auto itr_k = keys.begin();
         auto itr_v = values.begin();
@@ -85,7 +82,8 @@ namespace hfs {
     }
 
     Variable Variable::create_copy(const Variable& other) {
-        return Variable(other);
+        Variable v = other;
+        return v;
     }
     
     void Variable::set(const std::string value) {
@@ -124,6 +122,7 @@ namespace hfs {
             float_value = 0.f;
             break;        
         default:
+            float_value = 10.f;
             break;
         }
     }
@@ -147,15 +146,13 @@ namespace hfs {
     }
 
     void Variable::set_dictionary_entry(std::string key, Variable value) {
-        if(variable_type != VariableType::Dictionary) {
-            this->variable_type = VariableType::Dictionary;
+        this->variable_type = VariableType::Dictionary;
             
-            this->boolean_value = false;
-            this->integer_value = 0;
-            this->float_value = 0.0f;
-            this->string_value = "";
-            this->value = "";
-        }
+        this->boolean_value = false;
+        this->integer_value = 0;
+        this->float_value = 0.0f;
+        this->string_value = "";
+        this->value = "";
 
 
         auto entry = dictionary.find(key);
@@ -172,20 +169,6 @@ namespace hfs {
     void Variable::set_null() {
         set("null");
     }
-
-
-    void Variable::copy(const Variable& other) {
-        this->value = other.value;
-        this->variable_type = other.variable_type;
-
-        this->dictionary = other.dictionary;
-
-        this->boolean_value = other.boolean_value;
-        this->integer_value = other.integer_value;
-        this->float_value = other.float_value;
-        this->string_value = other.string_value;
-    }
-
 
     bool Variable::get_boolean_value() const {
         return boolean_value;

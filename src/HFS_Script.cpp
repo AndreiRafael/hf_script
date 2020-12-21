@@ -86,7 +86,7 @@ namespace hfs {
             else {//literal text
                 if(escaped) {
                     if(c == 'n') {
-                        c += '\n';
+                        current_token.token += '\n';
                     }
                     else {
                         current_token.token += c;

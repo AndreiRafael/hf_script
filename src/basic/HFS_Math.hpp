@@ -5,7 +5,10 @@
 #include <vector>
 
 namespace hfs {
-    Variable sum(std::vector<Variable> values);
+    class ScriptRunner;
+    namespace basic::math {
+       void apply(ScriptRunner* runner);
+    }
 }
 
 #endif
