@@ -28,30 +28,31 @@ namespace hfs {
 
     class TokenGroup {
     private:
+        //obtainable values
         bool compiled = false;
-
         Token first_token;
         std::vector<Token> info_tokens;//info tokens obtained after compilation
         std::vector<Token> remaining_tokens;
         int next_depth = -1;
-        Operation* operation = nullptr;
-
         TokenGroupType type = TokenGroupType::Unknown;
 
+        //construction values
         std::vector<Token> tokens;// pair<pair<line, column>, token>
         int depth;
         bool sub_group = false;
-    public:
-        TokenGroup(const bool sub_group, const int depth, const std::vector<Token> tokens);
+
+        //internal values
+        std::vector<TokenGroup> child_gropus;
 
         /**
          * @brief Compiles token group, attempting to determine its type and generate any necessary child groups, which are also compiled
          * 
-         * @param error_string A string to be filled with error information when the function returns nullptr
-         * 
-         * @return A valid operation if type could be determined for self and for subsequent child groups
-         * @return nullptr otherwise
-         */
+         * @param error_string A string pointer to be filled with error information when the function returns false
+         **/
+        bool internal_compile(std::string* error_string);
+    public:
+        TokenGroup(const bool sub_group, const int depth, const std::vector<Token> tokens);
+
         bool compile(std::string* error_string);
 
         bool is_compiled() const;
@@ -61,7 +62,7 @@ namespace hfs {
         std::vector<Token> get_remaining_tokens() const;
         int get_depth() const;
         int get_next_depth() const;
-        Operation* get_operation() const;
+        Operation* build_operation() const;
     };
 }
 

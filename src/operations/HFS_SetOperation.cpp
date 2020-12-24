@@ -10,6 +10,10 @@ namespace hfs {
         add_requirement(value);
     }
 
+    SetOperation::~SetOperation() {
+        delete retrieval_op;
+    }
+
     OperationResult SetOperation::internal_run(ScriptRunner* runner,
                                                Scope* const scope,
                                                const std::vector<Variable>& values, 

@@ -12,12 +12,10 @@ namespace hfs{
         this->tokens = tokens;
     }
 
-    bool TokenGroup::compile(std::string* error_string) {
-        auto clear_error = [error_string] () {
-            if(error_string != nullptr) {
-                *error_string = "";
-            }
-        };
+    bool TokenGroup::internal_compile(std::string* error_string) {
+        if(compiled) {//already compiled
+            return true;
+        }
 
         auto make_error = [this, error_string] (const std::string message, const Token& token) -> bool {
             if(error_string != nullptr) {
@@ -27,7 +25,6 @@ namespace hfs{
                 ss << msg << " (Ln " << token.line << ", Col " << token.column << ')';
                 *error_string = ss.str();
             }
-            operation = nullptr;
             return false;
         };
 
@@ -96,7 +93,7 @@ namespace hfs{
 
         //to be  used right after a '('. itr must be an iterator of 'tokens'. itr will be after the ')' if everithing went right
         //if it returns true, 'parameters' will contain valid operation to be used as parameters
-        auto get_function_parameters = [this, make_error, make_error_unexpected, error_string] (std::vector<Token>::iterator& itr, std::vector<Operation*>* parameters) -> bool {
+        auto get_function_parameters = [this, make_error, make_error_unexpected, error_string] (std::vector<Token>::iterator& itr, std::vector<TokenGroup>* parameters) -> bool {
             int paren_depth = 1;
 
             std::vector<Token> current_param = std::vector<Token>();
@@ -132,7 +129,7 @@ namespace hfs{
                 if(gen) {
                     TokenGroup param_group(true, this->get_depth(), current_param);
                     if(param_group.compile(error_string)) {
-                        parameters->push_back(param_group.get_operation());
+                        parameters->push_back(param_group);
                     }
                     else {
                         return false;
@@ -147,6 +144,7 @@ namespace hfs{
             return true;
         };
 
+        type = TokenGroupType::Unknown;//resets back to unknown in case it fails
         if(depth == 0) {//must be func def
             for(int i = 0; i < tokens.size(); i++) {
             auto token = tokens[i];
@@ -189,11 +187,8 @@ namespace hfs{
                             return make_error("Expected '{' after function definition, found '%t'", tokens[i + 1]);
                         }
                         else {//function definition success
-                            clear_error();
-                            compiled = true;
                             remaining_tokens = std::vector<Token>(tokens.begin() + i + 2, tokens.end());
                             next_depth = 1;
-                            operation = new DeepenScopeOperation();
                             return true;
                         }
                     }
@@ -220,7 +215,6 @@ namespace hfs{
         else if(tokens.size() > 0) {//depth != 0
             first_token = tokens[0];
             if(!sub_group) {//may be return/release/if/else if/else
-                //TODO: pure function calls can also be here (via sub calls)
                 if(first_token.token.compare("if") == 0 ||
                    first_token.token.compare("else") == 0 ||
                    first_token.token.compare("while") == 0)
@@ -240,11 +234,8 @@ namespace hfs{
                             }
                             type = TokenGroupType::ElseConditional;
 
-                            clear_error();
-                            compiled = true;
                             remaining_tokens = std::vector<Token>(++itr, tokens.end());
                             next_depth = depth + 1;
-                            operation = new DeepenScopeOperation();
                             return true;
                         }
                     }
@@ -273,7 +264,6 @@ namespace hfs{
                                     if(!condition.compile(error_string)) {//try to compile token in search of relevant error
                                         return false;
                                     }
-                                    //TODO: free operation
                                     return make_error_unexpected(*itr);
                                 }
                             }
@@ -294,11 +284,9 @@ namespace hfs{
                                         return make_error("Expected '{', found '%t' ", *itr);
                                     }
 
-                                    clear_error();
-                                    compiled = true;
                                     remaining_tokens = std::vector<Token>(itr, tokens.end());
                                     next_depth = depth;
-                                    operation = new BranchOperation(condition.get_operation());
+                                    child_gropus.push_back(condition);
                                     return true;
                                 }
                             }
@@ -313,22 +301,17 @@ namespace hfs{
                     std::vector<Token> ret_tokens = std::vector<Token>();
                     while(++itr != tokens.end()) {
                         if(itr->token.compare(";") == 0) {
-                            if(ret_tokens.size() == 0) {
-                                clear_error();
-                                compiled = true;
+                            if(ret_tokens.size() == 0) {//return;
                                 remaining_tokens = std::vector<Token>(++itr, tokens.end());
                                 next_depth = depth;
-                                operation = new RawValueOperation("null");
                                 return true;
                             }
                             else {
                                 TokenGroup ret_group(true, depth, ret_tokens);
                                 if(ret_group.compile(error_string)) {
-                                    clear_error();
-                                    compiled = true;
                                     remaining_tokens = std::vector<Token>(++itr, tokens.end());
                                     next_depth = depth;
-                                    operation = ret_group.get_operation();
+                                    child_gropus.push_back(ret_group);
                                     return true;
                                 }
                                 else {
@@ -349,31 +332,20 @@ namespace hfs{
                         return make_error("Expected ';', found '%t'", *itr); 
                     }
 
-                    clear_error();
-                    compiled = true;
                     remaining_tokens = std::vector<Token>(++itr, tokens.end());
                     next_depth = depth;
-                    operation = new ReleaseOperation();
                     return true;
                 }
                 else if(first_token.token.compare("{") == 0) {//deepen
                     type = TokenGroupType::DeepenScope;
-
-                    clear_error();
-                    compiled = true;// TODO: this does not guarantee compilation
                     remaining_tokens = std::vector<Token>(tokens.begin() + 1, tokens.end());
                     next_depth = depth + 1;
 
-                    operation = new DeepenScopeOperation();
                     return true;
                 }
                 else if(first_token.token.compare("}") == 0) {//flatten
-                    operation = new FlattenScopeOperation();
                     type = depth == 1 ? TokenGroupType::FunctionEnd : TokenGroupType::FlattenScope;
-
                     remaining_tokens = std::vector<Token>(tokens.begin() + 1, tokens.end());
-                    clear_error();
-                    compiled = true;// TODO: this does not guarantee compilation
                     next_depth = depth - 1;
 
                     return true;
@@ -382,21 +354,18 @@ namespace hfs{
                     if(tokens.size() > 1 && tokens[1].token.compare("(") == 0) {//function call
                         type = TokenGroupType::SubCall;
                         auto itr = tokens.begin() + 2;
-                        std::vector<Operation*> parameters;
+                        std::vector<TokenGroup> parameters;
                         bool param_res = get_function_parameters(itr, &parameters);
                         if(param_res && itr != tokens.end() && itr->token.compare(";") == 0){//valid fcall
-                            clear_error();
-                            compiled = true;// TODO: this does not guarantee compilation
                             remaining_tokens = std::vector<Token>(++itr, tokens.end());
                             next_depth = depth;
 
-                            operation = new SubCallOperation(new FunctionCallOperation(tokens[0].token, parameters));
+                            child_gropus = parameters;
                             return true;
                         }
                         else {
-                            //TODO: delete operations
                             if(!param_res) {
-                                return false;
+                               return false;
                             }
                             else if(itr == tokens.end()) {
                                 return make_error("Expected ';', reached end of file", *--itr);
@@ -435,16 +404,15 @@ namespace hfs{
                                         if(pre_group.type != TokenGroupType::VariableRetrieval) {
                                             return make_error("Invalid value before '=', must be a variable", pre_group.first_token);
                                         }
-                                        clear_error();
-                                        compiled = true;
                                         remaining_tokens = std::vector<Token>(++itr, tokens.end());
                                         next_depth = depth;
 
-                                        operation = new SetOperation(dynamic_cast<VariableRetrievalOperation*>(pre_group.get_operation()), post_group.get_operation());
+                                        child_gropus.reserve(2);
+                                        child_gropus.push_back(pre_group);
+                                        child_gropus.push_back(post_group);
                                         return true;
                                     }
                                     else {
-                                        //TODO: delete unused compiled stuff?
                                         return false;
                                     }
                                     break;
@@ -473,22 +441,16 @@ namespace hfs{
                     }
 
                     type = TokenGroupType::RawValue;
-                    clear_error();
-                    compiled = true;
                     remaining_tokens = std::vector<Token>();
                     next_depth = depth;
-                    operation = new RawValueOperation(first_token.token);
                     return true;
                 }
                 else if(validate_name(first_token.token)) {//must be variable or function
                     if(tokens.size() == 1 || tokens[1].token.compare("[") == 0) {//must be a variable retrieval
                         type = TokenGroupType::VariableRetrieval;
-                        clear_error();
-                        compiled = true;// TODO: this does not guarantee compilation
                         remaining_tokens = std::vector<Token>();
                         next_depth = depth;
                         
-                        auto retrieval_operation = new VariableRetrievalOperation(first_token.token);
                         auto itr = tokens.begin();
 
                         int sqr_bracket_depth = 0;
@@ -496,7 +458,7 @@ namespace hfs{
                         while(++itr != tokens.end()) {
                             if(sqr_bracket_depth == 0) {//must be '['
                                 if(itr->token.compare("[") != 0) {
-                                    return make_error("Expected '[', found '%t' ", *itr);// TODO: cleanup retrieval operation
+                                    return make_error("Expected '[', found '%t' ", *itr);
                                 }
                                 ++sqr_bracket_depth;
                             }
@@ -507,12 +469,12 @@ namespace hfs{
                                 else if(itr->token.compare("]") == 0) {
                                     if(--sqr_bracket_depth == 0) {//finished token
                                         if(key_tokens.size() == 0) {
-                                            return make_error("Expected value between '[]'", tokens[1]);// TODO: cleanup retrieval operation
+                                            return make_error("Expected value between '[]'", tokens[1]);
                                         }
 
                                         TokenGroup in_bracket_tokens(true, depth, key_tokens);
                                         if(in_bracket_tokens.compile(error_string)) {
-                                            retrieval_operation->add_dictionary_key(in_bracket_tokens.get_operation());
+                                            child_gropus.push_back(in_bracket_tokens);
                                         }
                                         else {
                                             return false;
@@ -531,27 +493,23 @@ namespace hfs{
                         if(sqr_bracket_depth != 0) {
                             return make_error("Missing ']' after '%t'", *(tokens.end() - 1));
                         }
-                        
-                        operation = retrieval_operation;
                         return true;
                     }
                     else if(tokens[1].token.compare("(") == 0) {//func call
+                        type = TokenGroupType::FunctionCall;
                         auto itr = tokens.begin() + 2;
-                        std::vector<Operation*> parameters;
+                        std::vector<TokenGroup> parameters;
                         if(get_function_parameters(itr, &parameters)){
                             if(itr != tokens.end()) {
                                 return make_error_unexpected(*itr);//clear param ops
                             }
-                            clear_error();
-                            compiled = true;
                             remaining_tokens = std::vector<Token>();
                             next_depth = depth;
 
-                            operation = new FunctionCallOperation(tokens[0].token, parameters);
+                            child_gropus = parameters;
                             return true;
                         }
                         else {
-                            //TODO: delete operations
                             return false;
                         }
                     }
@@ -560,7 +518,6 @@ namespace hfs{
                     }
                 }
                 else if(first_token.token.compare("[") == 0) {//dictionary creation
-                    //TODO:
                     type = TokenGroupType::DictionaryCreation;
                     auto itr = tokens.begin();
                     int sqr_bracket_depth = 1;
@@ -605,25 +562,17 @@ namespace hfs{
                                 return make_error_unexpected(*itr);
                             }
 
-                            ConstructDictionaryOperation* construct_op = new ConstructDictionaryOperation();
                             for(auto pair : entries) {
                                 if(pair.first.compile(error_string) && pair.second.compile(error_string)) {
-                                    construct_op->add_pair(pair.first.get_operation(), pair.second.get_operation());
+                                    child_gropus.push_back(pair.first);
+                                    child_gropus.push_back(pair.second);
                                 }
                                 else {
-                                    // TODO: delete unused ops
                                     return false;
                                 }
                             }
-
-
-
-                            clear_error();
-                            compiled = true;
                             remaining_tokens = std::vector<Token>();
                             next_depth = depth;
-                            
-                            operation = construct_op;
                             return true;
                         }
                     }
@@ -634,10 +583,18 @@ namespace hfs{
             }
         }
         
-        if(error_string != nullptr) {
-            clear_error();
+        if(error_string != nullptr) {//unknown error
+            *error_string = "";
         }
         return false;
+    }
+
+    bool TokenGroup::compile(std::string* error_string) {
+        compiled = internal_compile(error_string);
+        if(compiled && error_string != nullptr) {
+            *error_string = "";
+        }
+        return compiled;
     }
 
     bool TokenGroup::is_compiled() const {
@@ -680,7 +637,83 @@ namespace hfs{
         return -1;
     }
 
-    Operation* TokenGroup::get_operation() const {
-        return operation;
+    Operation* TokenGroup::build_operation() const {
+        if(!compiled || std::any_of(child_gropus.begin(), child_gropus.end(), [] (const TokenGroup& g) { return !g.is_compiled(); })) {
+            return nullptr;
+        }
+
+        switch (type)
+        {
+        case TokenGroupType::FunctionEntry:
+        case TokenGroupType::ElseConditional:
+        case TokenGroupType::DeepenScope:
+            return new DeepenScopeOperation();
+            break;
+        case TokenGroupType::IfConditional:
+        case TokenGroupType::ElseIfConditional:
+        case TokenGroupType::WhileLoop:
+            return new BranchOperation(child_gropus[0].build_operation());
+            break;
+        case TokenGroupType::Return://TODO: make a real ReturnOperation, which kills scopes
+            if(child_gropus.size() == 0) {
+                return new RawValueOperation("null");
+            }
+            return child_gropus[0].build_operation();
+            break;
+        case TokenGroupType::Release:
+            return new ReleaseOperation;
+            break;
+        case TokenGroupType::FunctionEnd:
+        case TokenGroupType::FlattenScope:
+            return new FlattenScopeOperation();
+            break;
+        case TokenGroupType::SubCall:
+            {
+                std::vector<Operation*> params;
+                params.reserve(child_gropus.size());
+                for(auto& g : child_gropus) {
+                    params.push_back(g.build_operation());
+                }
+                return new SubCallOperation(new FunctionCallOperation(tokens[0].token, params));
+            }
+            break;
+        case TokenGroupType::FunctionCall:
+            {
+                std::vector<Operation*> params;
+                params.reserve(child_gropus.size());
+                for(auto& g : child_gropus) {
+                    params.push_back(g.build_operation());
+                }
+                return new FunctionCallOperation(tokens[0].token, params);
+            }
+            break;
+        case TokenGroupType::Set:
+            return new SetOperation(dynamic_cast<VariableRetrievalOperation*>(child_gropus[0].build_operation()), child_gropus[1].build_operation());
+            break;
+        case TokenGroupType::RawValue:
+            return new RawValueOperation(first_token.token);
+            break;
+        case TokenGroupType::VariableRetrieval:
+            {
+                auto retrieval_op = new VariableRetrievalOperation(first_token.token);
+                for(auto& g : child_gropus) {
+                    retrieval_op->add_dictionary_key(g.build_operation());
+                }
+                return retrieval_op;
+            }
+            break;
+        case TokenGroupType::DictionaryCreation:
+            {
+                ConstructDictionaryOperation* construct_op = new ConstructDictionaryOperation();
+                for(int i = 0; i < child_gropus.size(); i += 2) {
+                    construct_op->add_pair(child_gropus[i].build_operation(), child_gropus[i + 1].build_operation());
+                }
+                return construct_op;
+            }
+            break;        
+        default://error
+            return nullptr;
+            break;
+        }
     }
 }

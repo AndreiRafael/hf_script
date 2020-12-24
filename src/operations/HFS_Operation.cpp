@@ -9,6 +9,13 @@ namespace hfs {
         requirements.clear();
     }
 
+
+    Operation::~Operation() {
+        for(auto& req : requirements) {
+            delete req;
+        }
+    }
+
     std::vector<Operation*> Operation::get_requirements() const {
         return requirements;
     }
@@ -27,7 +34,7 @@ namespace hfs {
                                    Variable* const return_value,
                                    Operation** const next_operation,
                                    Scope** const next_scope) const {
-        if(scope == nullptr || return_value == nullptr || next_operation == nullptr || next_scope == nullptr) {
+        if(runner == nullptr || scope == nullptr || return_value == nullptr || next_operation == nullptr || next_scope == nullptr) {
             return OperationResult::Error;
         }
 

@@ -22,6 +22,7 @@ namespace hfs {
                                      Scope** const next_scope) const final;
     public:
         SetOperation(VariableRetrievalOperation* const retrieval_op, Operation* const value);
+        virtual ~SetOperation();
     };
 }
 

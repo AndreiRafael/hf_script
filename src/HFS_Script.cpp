@@ -133,11 +133,11 @@ namespace hfs {
         }
 
         auto last_token = tokens[tokens.size() - 1];
-        std::vector<TokenGroup> token_groups;
+        std::vector<std::pair<TokenGroup, Operation*>> token_groups;
         while(tokens.size() > 0) {
             TokenGroup new_group(false, bracket_depth, tokens);
             if(new_group.compile(&error_string)) {
-                token_groups.push_back(new_group);
+                token_groups.push_back(std::make_pair(new_group, static_cast<Operation*>(nullptr)));
 
                 tokens = new_group.get_remaining_tokens();
                 bracket_depth = new_group.get_next_depth();
@@ -148,7 +148,6 @@ namespace hfs {
                     ss << "Unknown error (Ln " << tokens[0].line << ", Col " << tokens[0].column << ")";
                     error_string = ss.str();
                 }
-                //TODO: cleanup allocated operations
                 return false;
             }
         }
@@ -157,9 +156,22 @@ namespace hfs {
             return make_error("Expected '}', found end of script", last_token);
         }
 
+        //when all tokensgroups are compiled, build operations
+        for(int i = 0; i < token_groups.size(); ++i) {
+            token_groups[i].second = token_groups[i].first.build_operation();
+        }
+
+        //in case some error occurs after they've been created
+        auto delete_operations = [&] () {
+            for(auto& pair : token_groups) {
+                delete pair.second;
+            }
+        };
+
         //TODO: set operation sequencing, while loops, if/else conditions
         for(int i = 0; i < token_groups.size(); ++i) {
-            auto g = token_groups[i];
+            auto g = token_groups[i].first;
+            auto op = token_groups[i].second;
             auto info_tokens = g.get_info_tokens();
             switch (g.get_type())
             {
@@ -171,11 +183,11 @@ namespace hfs {
                     param_names.push_back(itr->token);
                 }
                 ScriptFunctionDef new_func = { info_tokens[0].token, param_names };
-                if(find_function(info_tokens[0].token, static_cast<unsigned int>(param_names.size())) == nullptr) {//good, function not yet defined
-                                        
-                    functions.push_back(std::make_pair(new_func, g.get_operation()));
+                if(find_function(info_tokens[0].token, static_cast<unsigned int>(param_names.size())) == nullptr) {//good, function not yet defined                        
+                    functions.push_back(std::make_pair(new_func, op));
                 }
                 else {
+                    delete_operations();
                     return make_error("Function redefinition: '%t'", info_tokens[0]);
                 }
             }
@@ -185,21 +197,22 @@ namespace hfs {
             case TokenGroupType::SubCall:
             case TokenGroupType::DeepenScope:
                 if(i + 1 < token_groups.size()) {
-                    auto seq = dynamic_cast<SequentialOperation*>(g.get_operation());
-                    seq->set_next_operation(token_groups[i + 1].get_operation());
+                    auto seq = dynamic_cast<SequentialOperation*>(op);
+                    seq->set_next_operation(token_groups[i + 1].second);
                 }
                 break;
             case TokenGroupType::FlattenScope:
                 {
-                    auto seq = dynamic_cast<SequentialOperation*>(g.get_operation());
+                    auto seq = dynamic_cast<SequentialOperation*>(op);
 
                     bool is_while = false;
                     for(int j = i - 1; j > 0; --j) {
-                        auto other_g = token_groups[j];
-                        auto prev_g = token_groups[j - 1];
+                        auto other_g = token_groups[j].first;
+                        auto prev_g = token_groups[j - 1].first;
+                        auto prev_op = token_groups[j - 1].second;
                         if(other_g.get_depth() == g.get_depth() - 1 && prev_g.get_depth() == g.get_depth() - 1) {
                             if(other_g.get_type() == TokenGroupType::DeepenScope && prev_g.get_type() == TokenGroupType::WhileLoop) {
-                                seq->set_next_operation(prev_g.get_operation());
+                                seq->set_next_operation(prev_op);
                                 is_while = true;
                             }
                             break;
@@ -207,7 +220,8 @@ namespace hfs {
                     }
                     if(!is_while) {
                         for(int j = i + 1; j < token_groups.size(); ++j) {
-                            auto other_g = token_groups[j];
+                            auto other_g = token_groups[j].first;
+                            auto other_op = token_groups[j].second;
                             if(other_g.get_depth() == g.get_depth() - 1) {//possibly a match
                                 if(other_g.get_type() == TokenGroupType::ElseConditional) {
                                     continue;
@@ -216,7 +230,7 @@ namespace hfs {
                                     j++;
                                     continue;
                                 }
-                                seq->set_next_operation(other_g.get_operation());
+                                seq->set_next_operation(other_op);
                                 break;
                             }
                         }
@@ -226,27 +240,30 @@ namespace hfs {
                 break;
             case TokenGroupType::ElseIfConditional:
                 if(i + 1 < token_groups.size()){
-                    auto branch = dynamic_cast<BranchOperation*>(g.get_operation());
-                    branch->set_true_operation(token_groups[i + 1].get_operation());
+                    auto branch = dynamic_cast<BranchOperation*>(op);
+                    branch->set_true_operation(token_groups[i + 1].second);
                     for(int j = i + 2; j < token_groups.size(); ++j) {
-                        auto other_g = token_groups[j];
+                        auto other_g = token_groups[j].first;
+                        auto other_op = token_groups[j].second;
                         if(other_g.get_depth() == g.get_depth()) {
-                            branch->set_false_operation(other_g.get_operation());
+                            branch->set_false_operation(other_op);
                             break;
                         }
                     }
                     for(int j = i - 1; j > 0; --j) {
-                        auto other_g = token_groups[j];
-                        auto prev_g = token_groups[j - 1];
+                        auto other_g = token_groups[j].first;
+                        auto prev_g = token_groups[j - 1].first;
                         if(other_g.get_depth() == g.get_depth() && prev_g.get_depth() == g.get_depth()) {
                             if(other_g.get_type() != TokenGroupType::DeepenScope ||
                                (prev_g.get_type() != TokenGroupType::IfConditional && prev_g.get_type() != TokenGroupType::ElseIfConditional))
                             {
+                                delete_operations();
                                 return make_error("'Else if' conditional found no matching conditional", g.get_first_token());
                             }
                             break;
                         }
                         else if(other_g.get_depth() < g.get_depth()) {
+                            delete_operations();
                             return make_error("'Else if' conditional found no matching conditional", g.get_first_token());
                         }
                     }
@@ -254,20 +271,22 @@ namespace hfs {
                 break;
             case TokenGroupType::ElseConditional:  
                 if(i + 1 < token_groups.size()){
-                    auto seq = dynamic_cast<SequentialOperation*>(g.get_operation());
-                    seq->set_next_operation(token_groups[i + 1].get_operation());                              
+                    auto seq = dynamic_cast<SequentialOperation*>(op);
+                    seq->set_next_operation(token_groups[i + 1].second);                              
                     for(int j = i - 1; j > 0; --j) {
-                        auto other_g = token_groups[j];
-                        auto prev_g = token_groups[j - 1];
+                        auto other_g = token_groups[j].first;
+                        auto prev_g = token_groups[j - 1].first;
                         if(other_g.get_depth() == g.get_depth() && prev_g.get_depth() == g.get_depth()) {
                             if(other_g.get_type() != TokenGroupType::DeepenScope ||
                                 (prev_g.get_type() != TokenGroupType::IfConditional && prev_g.get_type() != TokenGroupType::ElseIfConditional))
                             {
+                                delete_operations();
                                 return make_error("'Else' conditional found no matching conditional", g.get_first_token());
                             }
                             break;
                         }
                         else if(other_g.get_depth() < g.get_depth()) {
+                            delete_operations();
                             return make_error("'Else' conditional found no matching conditional", g.get_first_token());
                         }
                     }
@@ -276,12 +295,13 @@ namespace hfs {
             case TokenGroupType::WhileLoop:
             case TokenGroupType::IfConditional:
                 if(i + 1 < token_groups.size()){
-                    auto branch = dynamic_cast<BranchOperation*>(g.get_operation());
-                    branch->set_true_operation(token_groups[i + 1].get_operation());
+                    auto branch = dynamic_cast<BranchOperation*>(op);
+                    branch->set_true_operation(token_groups[i + 1].second);
                     for(int j = i + 2; j < token_groups.size(); ++j) {
-                        auto other_g = token_groups[j];
+                        auto other_g = token_groups[j].first;
+                        auto other_op = token_groups[j].second;
                         if(other_g.get_depth() == g.get_depth()) {
-                            branch->set_false_operation(other_g.get_operation());
+                            branch->set_false_operation(other_op);
                             break;
                         }
                     }

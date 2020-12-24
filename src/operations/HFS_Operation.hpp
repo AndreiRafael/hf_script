@@ -31,17 +31,19 @@ namespace hfs {
                                     Operation** const next_operation,
                                     Scope** const next_scope) const = 0;
     public:
+        virtual ~Operation();
+
         /**
-         * \brief Gets the requirements that this Operation needs to complete before calling \ref run
+         * @brief Gets the requirements that this Operation needs to complete before calling \ref run
          */
         std::vector<Operation*> get_requirements() const;
 
         /**
-         * \brief Executes this operation on a scope
-         * \param scope The scope to execute this operation in
-         * \param returned_value A pointer to a Variable, filled if function returns OperationResult::Return
-         * \param next_operation A pointer to be filled with the operation to be executed after this one
-         * \param next_scope A pointer to be filled with the pointer to the scope to run the next operation.
+         * @brief Executes this operation on a scope
+         * @param scope The scope to execute this operation in
+         * @param returned_value A pointer to a Variable, filled if function returns OperationResult::Return
+         * @param next_operation A pointer to be filled with the operation to be executed after this one
+         * @param next_scope A pointer to be filled with the pointer to the scope to run the next operation.
          */
         OperationResult run(ScriptRunner* runner,
                             Scope* const scope,
