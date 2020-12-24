@@ -1,7 +1,7 @@
 #ifndef HFS_SCRIPT_HPP
 #define HFS_SCRIPT_HPP
 
-#include "operations/HFS_Operation.hpp"
+#include "./operations/HFS_Operation.hpp"
 #include <string_view>
 #include <string>
 #include <vector>

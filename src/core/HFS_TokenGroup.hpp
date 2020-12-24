@@ -2,11 +2,11 @@
 #define HFS_TOKENGROUP_HPP
 
 #include <vector>
-#include "operations/HFS_Operation.hpp"
+#include "../operations/HFS_Operation.hpp"
 #include "HFS_Token.hpp"
 
-namespace hfs {
-    enum TokenGroupType {
+namespace hfs::core {
+    enum class TokenGroupType {
         Unknown = 0,
         DictionaryCreation,
         FunctionEntry,//simply a deepen scope operation with added function declaration info

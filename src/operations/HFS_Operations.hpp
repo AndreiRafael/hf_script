@@ -4,6 +4,7 @@
 #include "HFS_FlattenScopeOperation.hpp"
 #include "HFS_FunctionCallOperation.hpp"
 #include "HFS_RawValueOperation.hpp"
+#include "HFS_ReturnOperation.hpp"
 #include "HFS_ReleaseOperation.hpp"
 #include "HFS_SetOperation.hpp"
 #include "HFS_SubCallOperation.hpp"

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-#include "HFS_Scope.hpp"
+#include "./HFS_Scope.hpp"
 #include "basic/HFS_Math.hpp"
 #include "basic/HFS_Essentials.hpp"
 #include "operations/HFS_Operations.hpp"
@@ -62,6 +62,8 @@ int main(int argc, char* argv[]) {
     hfs::basic::essentials::apply(&runner);
 
     runner.start_function("main", std::vector<hfs::Variable> ());
+
+    auto v = runner.get_scope()->get_variable("festa");
     while(true) {
         runner.step();
     }

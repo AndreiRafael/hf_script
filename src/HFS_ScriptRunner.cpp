@@ -6,11 +6,20 @@
 #include <iostream>
 #include <regex>
 
-#include "operations/HFS_FunctionCallOperation.hpp"
+#include "./operations/HFS_FunctionCallOperation.hpp"
 
 namespace fs = std::filesystem;
 
 namespace hfs {
+    ScriptRunner::ScriptRunner() {
+        this->scope = new Scope();
+    }
+
+    ScriptRunner::~ScriptRunner() {
+        delete this->scope;
+    }
+
+
     bool ScriptRunner::bind_function(std::string function_name, std::function<Variable(std::vector<Variable>)> function, int param_count) {
         if(get_bound_function(function_name, param_count) == nullptr) {//can be added
             BoundFunctionDef def = { function_name, param_count };
@@ -83,10 +92,8 @@ namespace hfs {
         while(++id_gen == 0u || operation_runners.find(id_gen) != operation_runners.end()) {}
 
 
-        OperationRunner* new_runner = new OperationRunner();
-        // TODO: Give users the ability to have "global" Scopes
-        Scope* new_scope = new Scope();
-        // TODO: Additionally, we need to dispose of the newly created Scope
+        core::OperationRunner* new_runner = new core::OperationRunner();
+        Scope* new_scope = new Scope(scope);
         new_runner->setup(first_operation, new_scope);
         if(from_script) {
             auto names = get_parameter_names(function_name, parameters.size());
@@ -102,20 +109,20 @@ namespace hfs {
         return id_gen;
     }
 
-    std::vector<std::pair<unsigned int, Variable>> ScriptRunner::step() {
-        std::vector<std::pair<unsigned int, Variable>> return_values;
+    std::vector<ReturnPair> ScriptRunner::step() {
+        std::vector<ReturnPair> return_values;
         std::vector<unsigned int> to_remove;
 
         for(auto& pair : operation_runners) {
             auto& runner = pair.second;
             auto& id = pair.first;
-            RunnerResult result;
+            core::RunnerResult result;
             do {
                 result = runner->step(this);
-            } while(result == RunnerResult::Ongoing);
+            } while(result == core::RunnerResult::Ongoing);
 
-            if(result == RunnerResult::Return) {
-                return_values.push_back(std::make_pair(id, runner->get_result()));
+            if(result == core::RunnerResult::Return) {
+                return_values.push_back({ id, runner->get_result() });
                 to_remove.push_back(id);
                 delete runner;// TODO: Destruir o escopo!
             }
@@ -126,5 +133,9 @@ namespace hfs {
         }
 
         return return_values;
+    }
+
+    Scope* ScriptRunner::get_scope() const {
+        return this->scope;
     }
 }

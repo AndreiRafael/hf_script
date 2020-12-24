@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <regex>
 
-#include "operations/HFS_Operations.hpp"
+#include "../operations/HFS_Operations.hpp"
 
-namespace hfs{
+namespace hfs::core {
     TokenGroup::TokenGroup(const bool sub_group, const int depth, const std::vector<Token> tokens) {
         this->sub_group = sub_group;//sub group allows return of non sequential operation
         this->depth = depth;
@@ -655,10 +655,7 @@ namespace hfs{
             return new BranchOperation(child_gropus[0].build_operation());
             break;
         case TokenGroupType::Return://TODO: make a real ReturnOperation, which kills scopes
-            if(child_gropus.size() == 0) {
-                return new RawValueOperation("null");
-            }
-            return child_gropus[0].build_operation();
+            return new ReturnOperation(child_gropus.size() == 0 ? new RawValueOperation("null") : child_gropus[0].build_operation());
             break;
         case TokenGroupType::Release:
             return new ReleaseOperation;

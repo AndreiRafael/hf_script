@@ -5,8 +5,8 @@
 #include <filesystem>
 #include <regex>
 
-#include "HFS_TokenGroup.hpp"
-#include "operations/HFS_Operations.hpp"
+#include "./core/HFS_TokenGroup.hpp"
+#include "./operations/HFS_Operations.hpp"
 
 namespace fs=std::filesystem;
 
@@ -19,8 +19,8 @@ namespace hfs {
         bool escaped = false;
         bool comment = false;
 
-        Token current_token = {"", 0, 0};
-        std::vector<Token> tokens = std::vector<Token>();
+        core::Token current_token = {"", 0, 0};
+        std::vector<core::Token> tokens = std::vector<core::Token>();
         for(auto c : text) {//read each char and transform them into tokens
             //simple count
             column_index++;
@@ -64,7 +64,7 @@ namespace hfs {
                     std::stringstream ss;
                     ss << c;
 
-                    Token tmp = { ss.str(), line_index, column_index };
+                    core::Token tmp = { ss.str(), line_index, column_index };
                     tokens.push_back(tmp);
                 }
                 else if(c == '\"') {
@@ -119,7 +119,7 @@ namespace hfs {
             return false;
         };
 
-        auto make_error = [this] (const std::string message, const Token& token) -> bool {
+        auto make_error = [this] (const std::string message, const core::Token& token) -> bool {
             std::regex r("%t");
             std::string msg = std::regex_replace(message, r, token.token);
             std::stringstream ss;
@@ -133,9 +133,9 @@ namespace hfs {
         }
 
         auto last_token = tokens[tokens.size() - 1];
-        std::vector<std::pair<TokenGroup, Operation*>> token_groups;
+        std::vector<std::pair<core::TokenGroup, Operation*>> token_groups;
         while(tokens.size() > 0) {
-            TokenGroup new_group(false, bracket_depth, tokens);
+            core::TokenGroup new_group(false, bracket_depth, tokens);
             if(new_group.compile(&error_string)) {
                 token_groups.push_back(std::make_pair(new_group, static_cast<Operation*>(nullptr)));
 
@@ -175,7 +175,7 @@ namespace hfs {
             auto info_tokens = g.get_info_tokens();
             switch (g.get_type())
             {
-            case TokenGroupType::FunctionEntry:
+            case core::TokenGroupType::FunctionEntry:
             {
                 std::vector<std::string> param_names = std::vector<std::string>(); 
                 param_names.reserve(info_tokens.size() - 1);
@@ -192,16 +192,16 @@ namespace hfs {
                 }
             }
             //fall down to sequential generic
-            case TokenGroupType::Set:
-            case TokenGroupType::Release:
-            case TokenGroupType::SubCall:
-            case TokenGroupType::DeepenScope:
+            case core::TokenGroupType::Set:
+            case core::TokenGroupType::Release:
+            case core::TokenGroupType::SubCall:
+            case core::TokenGroupType::DeepenScope:
                 if(i + 1 < token_groups.size()) {
                     auto seq = dynamic_cast<SequentialOperation*>(op);
                     seq->set_next_operation(token_groups[i + 1].second);
                 }
                 break;
-            case TokenGroupType::FlattenScope:
+            case core::TokenGroupType::FlattenScope:
                 {
                     auto seq = dynamic_cast<SequentialOperation*>(op);
 
@@ -211,7 +211,7 @@ namespace hfs {
                         auto prev_g = token_groups[j - 1].first;
                         auto prev_op = token_groups[j - 1].second;
                         if(other_g.get_depth() == g.get_depth() - 1 && prev_g.get_depth() == g.get_depth() - 1) {
-                            if(other_g.get_type() == TokenGroupType::DeepenScope && prev_g.get_type() == TokenGroupType::WhileLoop) {
+                            if(other_g.get_type() == core::TokenGroupType::DeepenScope && prev_g.get_type() == core::TokenGroupType::WhileLoop) {
                                 seq->set_next_operation(prev_op);
                                 is_while = true;
                             }
@@ -223,10 +223,10 @@ namespace hfs {
                             auto other_g = token_groups[j].first;
                             auto other_op = token_groups[j].second;
                             if(other_g.get_depth() == g.get_depth() - 1) {//possibly a match
-                                if(other_g.get_type() == TokenGroupType::ElseConditional) {
+                                if(other_g.get_type() == core::TokenGroupType::ElseConditional) {
                                     continue;
                                 }
-                                else if(other_g.get_type() == TokenGroupType::ElseIfConditional) {
+                                else if(other_g.get_type() == core::TokenGroupType::ElseIfConditional) {
                                     j++;
                                     continue;
                                 }
@@ -238,7 +238,7 @@ namespace hfs {
                 }
                 /* code */
                 break;
-            case TokenGroupType::ElseIfConditional:
+            case core::TokenGroupType::ElseIfConditional:
                 if(i + 1 < token_groups.size()){
                     auto branch = dynamic_cast<BranchOperation*>(op);
                     branch->set_true_operation(token_groups[i + 1].second);
@@ -254,8 +254,8 @@ namespace hfs {
                         auto other_g = token_groups[j].first;
                         auto prev_g = token_groups[j - 1].first;
                         if(other_g.get_depth() == g.get_depth() && prev_g.get_depth() == g.get_depth()) {
-                            if(other_g.get_type() != TokenGroupType::DeepenScope ||
-                               (prev_g.get_type() != TokenGroupType::IfConditional && prev_g.get_type() != TokenGroupType::ElseIfConditional))
+                            if(other_g.get_type() != core::TokenGroupType::DeepenScope ||
+                               (prev_g.get_type() != core::TokenGroupType::IfConditional && prev_g.get_type() != core::TokenGroupType::ElseIfConditional))
                             {
                                 delete_operations();
                                 return make_error("'Else if' conditional found no matching conditional", g.get_first_token());
@@ -269,7 +269,7 @@ namespace hfs {
                     }
                 }
                 break;
-            case TokenGroupType::ElseConditional:  
+            case core::TokenGroupType::ElseConditional:  
                 if(i + 1 < token_groups.size()){
                     auto seq = dynamic_cast<SequentialOperation*>(op);
                     seq->set_next_operation(token_groups[i + 1].second);                              
@@ -277,8 +277,8 @@ namespace hfs {
                         auto other_g = token_groups[j].first;
                         auto prev_g = token_groups[j - 1].first;
                         if(other_g.get_depth() == g.get_depth() && prev_g.get_depth() == g.get_depth()) {
-                            if(other_g.get_type() != TokenGroupType::DeepenScope ||
-                                (prev_g.get_type() != TokenGroupType::IfConditional && prev_g.get_type() != TokenGroupType::ElseIfConditional))
+                            if(other_g.get_type() != core::TokenGroupType::DeepenScope ||
+                                (prev_g.get_type() != core::TokenGroupType::IfConditional && prev_g.get_type() != core::TokenGroupType::ElseIfConditional))
                             {
                                 delete_operations();
                                 return make_error("'Else' conditional found no matching conditional", g.get_first_token());
@@ -292,8 +292,8 @@ namespace hfs {
                     }
                 }
                 break;            
-            case TokenGroupType::WhileLoop:
-            case TokenGroupType::IfConditional:
+            case core::TokenGroupType::WhileLoop:
+            case core::TokenGroupType::IfConditional:
                 if(i + 1 < token_groups.size()){
                     auto branch = dynamic_cast<BranchOperation*>(op);
                     branch->set_true_operation(token_groups[i + 1].second);

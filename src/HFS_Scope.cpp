@@ -31,7 +31,7 @@ namespace hfs {
         return get_variable(name);
     }
 
-    Scope* Scope::get_parent() {
+    Scope* Scope::get_parent() const {
         return parent_scope;
     }
 }

@@ -6,6 +6,7 @@
 
 namespace hfs {
     class ScriptRunner;
+
     namespace basic::math {
        void apply(ScriptRunner* runner);
     }

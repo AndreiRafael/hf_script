@@ -1,6 +1,6 @@
 #include "HFS_OperationRunner.hpp"
 
-namespace hfs {
+namespace hfs::core {
     void OperationRunner::clear_data() {
         result = Variable::create_null();
         values.clear();

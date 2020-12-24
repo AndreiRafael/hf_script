@@ -5,6 +5,8 @@
 #include <vector>
 #include <unordered_map>
 
+#include <iostream>
+
 namespace hfs {
     class Scope {
     private:
@@ -20,7 +22,7 @@ namespace hfs {
          */
         Variable* get_variable(const std::string name);
 
-        Scope* get_parent();
+        Scope* get_parent() const;
     };
 }
 

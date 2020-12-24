@@ -6,6 +6,7 @@
 
 namespace hfs {
     class ScriptRunner;
+
     namespace basic::essentials {
         void apply(ScriptRunner* runner);
     }

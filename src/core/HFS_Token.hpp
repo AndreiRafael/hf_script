@@ -3,7 +3,7 @@
 
 #include <string>
 
-namespace hfs {
+namespace hfs::core {
     struct Token {
         std::string token;
         int line;

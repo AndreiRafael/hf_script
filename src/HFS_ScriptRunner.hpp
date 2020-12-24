@@ -7,18 +7,24 @@
 #include <functional>
 
 #include "HFS_Script.hpp"
-#include "HFS_OperationRunner.hpp"
+#include "./core/HFS_OperationRunner.hpp"
 
-// TODO: restructure this class, so that it no longer loads files, but keeps an array of Scripts
 namespace hfs {
     struct BoundFunctionDef {
         std::string name;
         int param_count;
     };
 
+    struct ReturnPair {
+        unsigned int id;
+        Variable value;
+    };
+
     class ScriptRunner {
     private:
-        std::unordered_map<unsigned int, OperationRunner*> operation_runners;
+        Scope* scope;
+        
+        std::unordered_map<unsigned int, core::OperationRunner*> operation_runners;
 
         //two maps bc bound or script funcs may be removed midway through execution
         std::vector<std::pair<BoundFunctionDef, std::function<Variable(std::vector<Variable>)>>> bound_functions;
@@ -29,6 +35,10 @@ namespace hfs {
         unsigned int id_gen = 0;
 
     public:
+        ScriptRunner();
+        ScriptRunner(ScriptRunner const&) = delete;
+        ~ScriptRunner();
+
         bool add_script(Script* script, std::string* const error_string = nullptr);
 
         /**
@@ -69,7 +79,16 @@ namespace hfs {
          * \brief Steps queued functions once, any function that finishes execution has its return value returned
          * \returns An array of ids and variables returned from functions that ended this call
          */
-        std::vector<std::pair<unsigned int, Variable>> step();        
+        std::vector<ReturnPair> step();
+
+        /**
+         * @brief Get the scope of this ScriptRunner
+         * 
+         * @return The scope created by this runner on construction
+         * 
+         * @remarks Do not delete this Scope, it is the responsability of the Scope to do so
+         */
+        Scope* get_scope() const;    
     };
 }
 
