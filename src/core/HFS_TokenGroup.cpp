@@ -4,6 +4,7 @@
 #include <regex>
 
 #include "../operations/HFS_Operations.hpp"
+#include "../utility/HFS_Utility.hpp"
 
 namespace hfs::core {
     TokenGroup::TokenGroup(const bool sub_group, const int depth, const std::vector<Token> tokens) {
@@ -30,36 +31,6 @@ namespace hfs::core {
 
         auto make_error_unexpected = [make_error] (const Token& token) -> bool {
             return make_error("Unexpected token: '%t'", token);
-        };
-
-        //validates wheter a string may be used as a variable or function name
-        auto validate_name = [] (std::string name) -> bool {
-            if(name.compare("release") == 0 ||
-               name.compare("true") == 0 ||
-               name.compare("false") == 0 ||
-               name.compare("func") == 0 ||
-               name.compare("return") == 0 ||
-               name.compare("null") == 0 ||
-               name.compare("else") == 0 ||
-               name.compare("if") == 0 ||
-               name.compare("while") == 0)
-            {
-                return false;
-            }
-
-            if(name.size() > 0) {
-                auto itr = name.begin();
-                if(*itr == '_' || (*itr >= 65 && *itr <= 90) || (*itr >= 97 && *itr <= 122)) {//first char cannot be a number
-                    return std::all_of(++itr, name.end(), [] (char c) { 
-                                                            return c == '_' ||
-                                                                   (c >= 65 && c <= 90) ||
-                                                                   (c >= 97 && c <= 122) ||
-                                                                   (c >= 48 && c <= 57);
-                                                        }
-                    );
-                }
-            }
-            return false;
         };
 
         auto is_raw = [] (const std::string value) {
@@ -157,7 +128,7 @@ namespace hfs::core {
                     type = TokenGroupType::FunctionEntry;
                     break;
                 case 1://must be a valid function name
-                    if(!validate_name(token.token)) {
+                    if(!utility::validate_name(token.token)) {
                         return make_error("Invalid function name: '%t'", token);
                     }
                     info_tokens.push_back(token);
@@ -201,7 +172,7 @@ namespace hfs::core {
                         if((i % 2) == 0) {//even index, error
                             return make_error_unexpected(token);
                         }
-                        else if(!validate_name(token.token)) {//invalid name
+                        else if(!utility::validate_name(token.token)) {//invalid name
                             return make_error("Invalid parameter name: '%t'", token);
                         }
                         else {//valid parameter
@@ -350,7 +321,7 @@ namespace hfs::core {
 
                     return true;
                 }
-                else if(validate_name(first_token.token)) {//valid name, set operation of fcall
+                else if(utility::validate_name(first_token.token)) {//valid name, set operation of fcall
                     if(tokens.size() > 1 && tokens[1].token.compare("(") == 0) {//function call
                         type = TokenGroupType::SubCall;
                         auto itr = tokens.begin() + 2;
@@ -445,7 +416,7 @@ namespace hfs::core {
                     next_depth = depth;
                     return true;
                 }
-                else if(validate_name(first_token.token)) {//must be variable or function
+                else if(utility::validate_name(first_token.token)) {//must be variable or function
                     if(tokens.size() == 1 || tokens[1].token.compare("[") == 0) {//must be a variable retrieval
                         type = TokenGroupType::VariableRetrieval;
                         remaining_tokens = std::vector<Token>();

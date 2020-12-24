@@ -7,6 +7,7 @@
 #include <regex>
 
 #include "./operations/HFS_FunctionCallOperation.hpp"
+#include "./utility/HFS_Utility.hpp"
 
 namespace fs = std::filesystem;
 
@@ -21,11 +22,12 @@ namespace hfs {
 
 
     bool ScriptRunner::bind_function(std::string function_name, std::function<Variable(std::vector<Variable>)> function, int param_count) {
-        if(get_bound_function(function_name, param_count) == nullptr) {//can be added
+        if(utility::validate_name(function_name) && get_bound_function(function_name, param_count) == nullptr) {//can be added
             BoundFunctionDef def = { function_name, param_count };
             
             bound_functions.push_back(std::make_pair(def, function));
             bound_operations.push_back(std::make_pair(def, new FunctionCallOperation(function_name, std::vector<Operation*>())));
+            return true;
         }
         return false;
     }
