@@ -25,6 +25,7 @@ namespace hfs {
         Scope* scope;
         
         std::unordered_map<unsigned int, core::OperationRunner*> operation_runners;
+        std::vector<ReturnPair> return_pairs = std::vector<ReturnPair>();
 
         //two maps bc bound or script funcs may be removed midway through execution
         std::vector<std::pair<BoundFunctionDef, std::function<Variable(std::vector<Variable>)>>> bound_functions;

@@ -112,7 +112,7 @@ namespace hfs {
     }
 
     std::vector<ReturnPair> ScriptRunner::step() {
-        std::vector<ReturnPair> return_values;
+        return_pairs.clear();
         std::vector<unsigned int> to_remove;
 
         for(auto& pair : operation_runners) {
@@ -124,7 +124,7 @@ namespace hfs {
             } while(result == core::RunnerResult::Ongoing);
 
             if(result == core::RunnerResult::Return) {
-                return_values.push_back({ id, runner->get_result() });
+                return_pairs.push_back({ id, runner->get_result() });
                 to_remove.push_back(id);
                 delete runner;// TODO: Destruir o escopo!
             }
@@ -134,7 +134,7 @@ namespace hfs {
             operation_runners.erase(id);
         }
 
-        return return_values;
+        return return_pairs;
     }
 
     Scope* ScriptRunner::get_scope() const {

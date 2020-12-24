@@ -34,6 +34,7 @@
 # Build Folders
 [Bb]in
 [Bb]uild
+.vscode/
 
 # CMake
 CMakeLists.txt.user
