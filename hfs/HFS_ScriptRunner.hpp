@@ -20,6 +20,8 @@ namespace hfs {
         Variable value;
     };
 
+    typedef std::function<Variable(std::vector<Variable>)> BindableFunction;
+
     class ScriptRunner {
     private:
         Scope* scope;
@@ -28,7 +30,7 @@ namespace hfs {
         std::vector<ReturnPair> return_pairs = std::vector<ReturnPair>();
 
         //two maps bc bound or script funcs may be removed midway through execution
-        std::vector<std::pair<BoundFunctionDef, std::function<Variable(std::vector<Variable>)>>> bound_functions;
+        std::vector<std::pair<BoundFunctionDef, BindableFunction>> bound_functions;
         std::vector<std::pair<BoundFunctionDef, Operation*>> bound_operations;//a cheap way to delay direct calls from start_function by a frame
 
         std::vector<Script*> scripts;
@@ -51,9 +53,9 @@ namespace hfs {
          * @return true if bounded the function correctly
          * @return false if there was already another function with the same name and parameter count bound
          */
-        bool bind_function(std::string function_name, std::function<Variable(std::vector<Variable>)> function, int param_count = -1);
+        bool bind_function(std::string function_name, BindableFunction function, int param_count = -1);
 
-        std::function<Variable(std::vector<Variable>)>* get_bound_function(const std::string_view function_name, const int param_count);
+        BindableFunction* get_bound_function(const std::string_view function_name, const int param_count);
         Operation* get_script_function(const std::string_view function_name, const unsigned int param_count);
 
         /**
