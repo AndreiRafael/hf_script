@@ -124,9 +124,9 @@ namespace hfs {
             } while(result == core::RunnerResult::Ongoing);
 
             if(result == core::RunnerResult::Return) {
-                return_pairs.push_back({ id, runner->get_result() });
+                return_pairs.push_back({ id, runner->get_returned_value() });
                 to_remove.push_back(id);
-                delete runner;// TODO: Destruir o escopo!
+                delete runner;
             }
         }
         

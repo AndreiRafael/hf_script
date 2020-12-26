@@ -2,7 +2,7 @@
 
 namespace hfs::core {
     void OperationRunner::clear_data() {
-        result = Variable::create_null();
+        returned_value = Variable::create_null();
         values.clear();
     }
 
@@ -23,7 +23,7 @@ namespace hfs::core {
         auto req_index = values.size();
         if(req_index >= requirements.size()) {
             Scope* next_scope;
-            const auto op_result = operation->run(runner, scope, values, &result, &operation, &scope);
+            const auto op_result = operation->run(runner, scope, values, &returned_value, &operation, &scope);
             switch (op_result)
             {
             case OperationResult::Return://when an operation returns, go to the next one. Return if this is the last one
@@ -44,7 +44,7 @@ namespace hfs::core {
             switch (child_step)
             {
             case RunnerResult::Return:
-                values.push_back(child_runner->get_result());
+                values.push_back(child_runner->get_returned_value());
                 delete child_runner;
                 child_runner = nullptr;
                 return RunnerResult::Ongoing;
@@ -61,7 +61,7 @@ namespace hfs::core {
         return RunnerResult::Ongoing;
     }
 
-    Variable OperationRunner::get_result() {// TODO: This name is very confusing, feels like it is going to return a RunnerResult
-        return result;
+    Variable OperationRunner::get_returned_value() {
+        return returned_value;
     }
 }

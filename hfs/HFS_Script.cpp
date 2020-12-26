@@ -168,7 +168,6 @@ namespace hfs {
             }
         };
 
-        //TODO: set operation sequencing, while loops, if/else conditions
         for(int i = 0; i < token_groups.size(); ++i) {
             auto g = token_groups[i].first;
             auto op = token_groups[i].second;

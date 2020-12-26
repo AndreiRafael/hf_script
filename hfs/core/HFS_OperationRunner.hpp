@@ -12,7 +12,7 @@ namespace hfs {
             Error,  //something wrong happened, cannot continue execution
             Ongoing,//did not finish execution, can call step again immediatly
             Wait,   //did not finish execution, but was told to wait
-            Return  //finished execution, guaranteeing get_result returns a valid variable
+            Return  //finished execution, guaranteeing get_returned_value returns a valid variable
         };
         
         class OperationRunner {
@@ -21,7 +21,7 @@ namespace hfs {
 
             Operation* operation;
             Scope* scope;
-            Variable result = Variable::create_null();
+            Variable returned_value = Variable::create_null();
 
             std::vector<Variable> values;
 
@@ -39,7 +39,7 @@ namespace hfs {
             /**
              * \brief Gets the result of running the operation, only valid after \ref OperationRunner::step returns RunnerResult::Return
              */
-            Variable get_result();
+            Variable get_returned_value();
         };
     }
 }

@@ -18,14 +18,13 @@ namespace hfs {
         
         auto script_function = runner->get_script_function(function_name, values.size());
         if(script_function != nullptr) {//wil run script function
-            Scope* new_scope = new Scope(nullptr);// TODO: o pai deste escopo deve ser, diretamente, o escoppo principal do script runner
-            // TODO: Tem que achar uma forma de deletar esses caras(escopos) depois também
+            Scope* new_scope = new Scope(runner->get_scope());
             auto names = runner->get_parameter_names(function_name, values.size());
             for(int i = 0; i < names.size() && i < values.size(); ++i) {
                 *new_scope->get_variable(names[i]) = values[i];
             }
 
-            *next_operation = script_function; //TODO: como vai funcionar a saída da função??, pra continuar a execução do código depois da chamada??
+            *next_operation = script_function;
             *next_scope = new_scope;
             *returned_value = Variable::create_null();
             return OperationResult::Return;

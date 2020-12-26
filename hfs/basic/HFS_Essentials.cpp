@@ -156,7 +156,7 @@ namespace hfs {
             runner->bind_function("strcat", std::function<Variable(std::vector<Variable>)>(strcat));
             runner->bind_function("substr", std::function<Variable(std::vector<Variable>)>(substr), 3);
             
-            runner->bind_function("random", std::function<Variable(std::vector<Variable>)>(random));
+            runner->bind_function("random", std::function<Variable(std::vector<Variable>)>(random), 2);
         }
     }
 }

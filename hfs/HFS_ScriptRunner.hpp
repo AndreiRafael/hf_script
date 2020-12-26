@@ -20,7 +20,8 @@ namespace hfs {
         Variable value;
     };
 
-    typedef std::function<Variable(std::vector<Variable>)> BindableFunction;
+    typedef std::vector<Variable> ParameterList;
+    typedef std::function<Variable(ParameterList)> BindableFunction;
 
     class ScriptRunner {
     private:

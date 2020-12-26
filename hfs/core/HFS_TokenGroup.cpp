@@ -625,7 +625,7 @@ namespace hfs::core {
         case TokenGroupType::WhileLoop:
             return new BranchOperation(child_gropus[0].build_operation());
             break;
-        case TokenGroupType::Return://TODO: make a real ReturnOperation, which kills scopes
+        case TokenGroupType::Return:
             return new ReturnOperation(child_gropus.size() == 0 ? new RawValueOperation("null") : child_gropus[0].build_operation());
             break;
         case TokenGroupType::Release:
