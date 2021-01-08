@@ -20,24 +20,24 @@ namespace hfs {
         return requirements;
     }
 
-    OperationResult Operation::run(ScriptRunner* runner,
+    OperationResult Operation::run(ScriptHolder* holder,
                                    Scope* const scope,
                                    Variable* const return_value,
                                    Operation** const next_operation,
                                    Scope** const next_scope) const {
-        return run(runner, scope, std::vector<Variable>(), return_value, next_operation, next_scope);
+        return run(holder, scope, std::vector<Variable>(), return_value, next_operation, next_scope);
     }
 
-    OperationResult Operation::run(ScriptRunner* runner,
+    OperationResult Operation::run(ScriptHolder* holder,
                                    Scope* const scope,
                                    const std::vector<Variable>& values,
                                    Variable* const return_value,
                                    Operation** const next_operation,
                                    Scope** const next_scope) const {
-        if(runner == nullptr || scope == nullptr || return_value == nullptr || next_operation == nullptr || next_scope == nullptr) {
+        if(holder == nullptr || scope == nullptr || return_value == nullptr || next_operation == nullptr || next_scope == nullptr) {
             return OperationResult::Error;
         }
 
-        return internal_run(runner, scope, values, return_value, next_operation, next_scope);
+        return internal_run(holder, scope, values, return_value, next_operation, next_scope);
     }
 }

@@ -5,11 +5,11 @@
 
 namespace hfs {
     /**
-     * @brief An operation that does nothing, but tells the runner to hold code execution
+     * @brief An operation that does nothing, but tells the holder to hold code execution
      */
     class ReleaseOperation : public SequentialOperation {
     protected:
-        OperationResult internal_run(ScriptRunner* runner,
+        OperationResult internal_run(ScriptHolder* holder,
                                      Scope* const scope,
                                      const std::vector<Variable>& values,
                                      Variable* const return_value,

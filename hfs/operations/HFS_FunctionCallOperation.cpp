@@ -1,5 +1,5 @@
 #include "HFS_FunctionCallOperation.hpp"
-#include "../HFS_ScriptRunner.hpp"
+#include "../HFS_ScriptHolder.hpp"
 
 namespace hfs {
     FunctionCallOperation::FunctionCallOperation(const std::string function_name, std::vector<Operation*> parameters) {
@@ -9,17 +9,17 @@ namespace hfs {
         }
     }
 
-    OperationResult FunctionCallOperation::internal_run(ScriptRunner* runner,
+    OperationResult FunctionCallOperation::internal_run(ScriptHolder* holder,
                                                         Scope* const scope,
                                                         const std::vector<Variable>& values, 
                                                         Variable* const returned_value,
                                                         Operation** const next_operation,
                                                         Scope** const next_scope) const {
         
-        auto script_function = runner->get_script_function(function_name, values.size());
+        auto script_function = holder->get_script_function(function_name, values.size());
         if(script_function != nullptr) {//wil run script function
-            Scope* new_scope = new Scope(runner->get_scope());
-            auto names = runner->get_parameter_names(function_name, values.size());
+            Scope* new_scope = new Scope(holder->get_scope());
+            auto names = holder->get_parameter_names(function_name, values.size());
             for(int i = 0; i < names.size() && i < values.size(); ++i) {
                 *new_scope->get_variable(names[i]) = values[i];
             }
@@ -30,7 +30,7 @@ namespace hfs {
             return OperationResult::Return;
         }
 
-        auto bound_function = runner->get_bound_function(function_name, values.size());
+        auto bound_function = holder->get_bound_function(function_name, values.size());
         if(bound_function != nullptr) {
             *returned_value = (*bound_function)(values);
             *next_operation = nullptr;

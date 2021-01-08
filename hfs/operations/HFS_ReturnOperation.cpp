@@ -1,12 +1,12 @@
 #include "HFS_ReturnOperation.hpp"
-#include "../HFS_ScriptRunner.hpp"
+#include "../HFS_ScriptHolder.hpp"
 
 namespace hfs {
     ReturnOperation::ReturnOperation(Operation* operation) {
         add_requirement(operation);
     }
 
-    OperationResult ReturnOperation::internal_run(ScriptRunner* runner,
+    OperationResult ReturnOperation::internal_run(ScriptHolder* holder,
                                                    Scope* const scope,
                                                    const std::vector<Variable>& values,
                                                    Variable* const returned_value,
@@ -14,7 +14,7 @@ namespace hfs {
                                                    Scope** const next_scope) const
     {
         Scope* s = scope;
-        while(s != runner->get_scope() && s != nullptr) {
+        while(s != holder->get_scope() && s != nullptr) {
             Scope* next = s->get_parent();
             delete s;
             s = next;

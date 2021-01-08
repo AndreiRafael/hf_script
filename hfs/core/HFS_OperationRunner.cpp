@@ -18,12 +18,12 @@ namespace hfs::core {
         }
     }
 
-    RunnerResult OperationRunner::step(ScriptRunner* runner) {
+    RunnerResult OperationRunner::step(ScriptHolder* holder) {
         auto requirements = operation->get_requirements();
         auto req_index = values.size();
         if(req_index >= requirements.size()) {
             Scope* next_scope;
-            const auto op_result = operation->run(runner, scope, values, &returned_value, &operation, &scope);
+            const auto op_result = operation->run(holder, scope, values, &returned_value, &operation, &scope);
             switch (op_result)
             {
             case OperationResult::Return://when an operation returns, go to the next one. Return if this is the last one
@@ -40,7 +40,7 @@ namespace hfs::core {
         }
 
         if(child_runner != nullptr) {
-            const auto child_step = child_runner->step(runner);
+            const auto child_step = child_runner->step(holder);
             switch (child_step)
             {
             case RunnerResult::Return:

@@ -27,11 +27,11 @@ func my_function() {
 
 To begin using *Hifire Script*, link against *hfs.lib(Windows)* and include "HFS.hpp", then you should be good to go.
 
-To load scripts, use the *load_from_file* method in an instance of the *Script* class. In order to actually be ran, a *Script* needs to be added to an instance of *ScriptRunner*, via its method *add_script*.
+To load scripts, use the *load_from_file* method in an instance of the *Script* class. In order to actually be ran, a *Script* needs to be added to an instance of *ScriptHolder*, via its method *add_script*.
 
-All scripts held by a *ScriptRunner* can access each other functions. Similarly, all scipts on a *ScriptRunner* can use c++ functions bound by the *bind_function* method of the *ScriptRunner*.
+All scripts held by a *ScriptHolder* can access each other functions. Similarly, all scipts on a *ScriptHolder* can use c++ functions bound by the *bind_function* method of the *ScriptHolder*.
 
-To enter a function, call *start_function* from a *ScriptRunner*. The function won't be ran directly, this occurs when *step* is called on a *ScriptRunner*, which should be called frequently, preferably in a loop each frame of the application.
+To enter a function, call *start_function* from a *ScriptHolder*. The function won't be ran directly, this occurs when *step* is called on a *ScriptHolder*, which should be called frequently, preferably in a loop each frame of the application.
 
 
 # Other Languages

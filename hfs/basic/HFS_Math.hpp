@@ -5,10 +5,10 @@
 #include <vector>
 
 namespace hfs {
-    class ScriptRunner;
+    class ScriptHolder;
 
     namespace basic::math {
-       void apply(ScriptRunner* runner);
+       void apply(ScriptHolder* holder);
     }
 }
 

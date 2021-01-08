@@ -11,6 +11,12 @@
 namespace fs=std::filesystem;
 
 namespace hfs {
+    Script::~Script() {
+        for(auto holder : associated_holders) {
+            holder->remove_script(this);
+        }
+    }
+
     bool Script::load_from_string(const std::string_view text) {
         int line_index = 1;
         int column_index = 0;

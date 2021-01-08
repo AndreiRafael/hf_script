@@ -5,7 +5,7 @@
 #include "../HFS_Variable.hpp"
 
 namespace hfs {
-    class ScriptRunner;
+    class ScriptHolder;
 
     namespace core {
         enum class RunnerResult {
@@ -32,9 +32,9 @@ namespace hfs {
             void insert_values(std::vector<Variable> values);
 
             /**
-             * \brief Steps the operator once, returns the result of the step and fills \param value if finished running
+             * \brief Steps the operation once, returns the result of the step and fills \param value if finished running
              */
-            RunnerResult step(ScriptRunner* runner);
+            RunnerResult step(ScriptHolder* holder);
 
             /**
              * \brief Gets the result of running the operation, only valid after \ref OperationRunner::step returns RunnerResult::Return

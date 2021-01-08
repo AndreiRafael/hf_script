@@ -1,7 +1,7 @@
 #include "HFS_DeepenScopeOperation.hpp"
 
 namespace hfs {
-    OperationResult DeepenScopeOperation::internal_run(ScriptRunner* runner,
+    OperationResult DeepenScopeOperation::internal_run(ScriptHolder* holder,
                                                        Scope* const scope,
                                                        const std::vector<Variable>& values,
                                                        Variable* const returned_value,

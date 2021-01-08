@@ -2,7 +2,7 @@
 #include <algorithm>
 
 namespace hfs {
-    OperationResult ReleaseOperation::internal_run(ScriptRunner* runner,
+    OperationResult ReleaseOperation::internal_run(ScriptHolder* holder,
                                                    Scope* const scope,
                                                    const std::vector<Variable>& values,
                                                    Variable* const returned_value,

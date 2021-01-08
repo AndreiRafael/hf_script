@@ -1,5 +1,5 @@
 #include "HFS_Essentials.hpp"
-#include "../HFS_ScriptRunner.hpp"
+#include "../HFS_ScriptHolder.hpp"
 #include <algorithm>
 
 namespace hfs {
@@ -138,25 +138,25 @@ namespace hfs {
         }
 
 
-        void apply(ScriptRunner* runner) {
-            runner->bind_function("equal", std::function<Variable(std::vector<Variable>)>(equal));
-            runner->bind_function("not", std::function<Variable(std::vector<Variable>)>(not), 1);
-            runner->bind_function("and", std::function<Variable(std::vector<Variable>)>(and));
-            runner->bind_function("or", std::function<Variable(std::vector<Variable>)>(or));
+        void apply(ScriptHolder* holder) {
+            holder->bind_function("equal", std::function<Variable(std::vector<Variable>)>(equal));
+            holder->bind_function("not", std::function<Variable(std::vector<Variable>)>(not), 1);
+            holder->bind_function("and", std::function<Variable(std::vector<Variable>)>(and));
+            holder->bind_function("or", std::function<Variable(std::vector<Variable>)>(or));
 
-            runner->bind_function("less", std::function<Variable(std::vector<Variable>)>(less), 2);
-            runner->bind_function("lequal", std::function<Variable(std::vector<Variable>)>(lequal), 2);
-            runner->bind_function("greater", std::function<Variable(std::vector<Variable>)>(greater), 2);
-            runner->bind_function("gequal", std::function<Variable(std::vector<Variable>)>(gequal), 2);
+            holder->bind_function("less", std::function<Variable(std::vector<Variable>)>(less), 2);
+            holder->bind_function("lequal", std::function<Variable(std::vector<Variable>)>(lequal), 2);
+            holder->bind_function("greater", std::function<Variable(std::vector<Variable>)>(greater), 2);
+            holder->bind_function("gequal", std::function<Variable(std::vector<Variable>)>(gequal), 2);
 
-            runner->bind_function("typeof", std::function<Variable(std::vector<Variable>)>(typeof), 1);
+            holder->bind_function("typeof", std::function<Variable(std::vector<Variable>)>(typeof), 1);
 
-            runner->bind_function("strcmp", std::function<Variable(std::vector<Variable>)>(strcmp), 2);
-            runner->bind_function("strlen", std::function<Variable(std::vector<Variable>)>(strlen), 1);
-            runner->bind_function("strcat", std::function<Variable(std::vector<Variable>)>(strcat));
-            runner->bind_function("substr", std::function<Variable(std::vector<Variable>)>(substr), 3);
+            holder->bind_function("strcmp", std::function<Variable(std::vector<Variable>)>(strcmp), 2);
+            holder->bind_function("strlen", std::function<Variable(std::vector<Variable>)>(strlen), 1);
+            holder->bind_function("strcat", std::function<Variable(std::vector<Variable>)>(strcat));
+            holder->bind_function("substr", std::function<Variable(std::vector<Variable>)>(substr), 3);
             
-            runner->bind_function("random", std::function<Variable(std::vector<Variable>)>(random), 2);
+            holder->bind_function("random", std::function<Variable(std::vector<Variable>)>(random), 2);
         }
     }
 }

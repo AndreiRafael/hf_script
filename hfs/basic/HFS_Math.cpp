@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <string>
 
-#include "../HFS_ScriptRunner.hpp"
+#include "../HFS_ScriptHolder.hpp"
 
 namespace hfs {
     namespace basic::math {
@@ -112,14 +112,14 @@ namespace hfs {
             return Variable::create_float(res);
         }
 
-        void apply(ScriptRunner* runner) {
-            runner->bind_function("sum", BindableFunction(sum), -1);
-            runner->bind_function("subtract", BindableFunction(subtract), -1);
-            runner->bind_function("multiply", BindableFunction(multiply), -1);
-            runner->bind_function("divide", BindableFunction(divide), -1);
+        void apply(ScriptHolder* holder) {
+            holder->bind_function("sum", BindableFunction(sum), -1);
+            holder->bind_function("subtract", BindableFunction(subtract), -1);
+            holder->bind_function("multiply", BindableFunction(multiply), -1);
+            holder->bind_function("divide", BindableFunction(divide), -1);
             
-            runner->bind_function("pow", BindableFunction(pow), 2);
-            runner->bind_function("sqrt", BindableFunction(sqrt), 1);
+            holder->bind_function("pow", BindableFunction(pow), 2);
+            holder->bind_function("sqrt", BindableFunction(sqrt), 1);
         }
     }
 }

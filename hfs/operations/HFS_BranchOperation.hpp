@@ -10,7 +10,7 @@ namespace hfs {
         Operation* false_operation;
 
     protected:
-        OperationResult internal_run(ScriptRunner* runner,
+        OperationResult internal_run(ScriptHolder* holder,
                                      Scope* const scope,
                                      const std::vector<Variable>& values,
                                      Variable* const return_value,

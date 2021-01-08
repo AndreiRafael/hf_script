@@ -14,7 +14,7 @@ namespace hfs {
         delete retrieval_op;
     }
 
-    OperationResult SetOperation::internal_run(ScriptRunner* runner,
+    OperationResult SetOperation::internal_run(ScriptHolder* holder,
                                                Scope* const scope,
                                                const std::vector<Variable>& values, 
                                                Variable* const returned_value,

@@ -5,7 +5,7 @@ namespace hfs {
         add_requirement(operation);
     }
 
-    OperationResult SubCallOperation::internal_run(ScriptRunner* runner,
+    OperationResult SubCallOperation::internal_run(ScriptHolder* holder,
                                                    Scope* const scope,
                                                    const std::vector<Variable>& values,
                                                    Variable* const returned_value,

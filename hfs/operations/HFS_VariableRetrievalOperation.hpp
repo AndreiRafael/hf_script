@@ -9,7 +9,7 @@ namespace hfs {
         std::string variable_name = "";
 
     protected:
-        OperationResult internal_run(ScriptRunner* runner,
+        OperationResult internal_run(ScriptHolder* holder,
                                      Scope* const scope,
                                      const std::vector<Variable>& values,
                                      Variable* const returned_value,
