@@ -163,7 +163,7 @@ namespace hfs {
         }
 
         //when all tokensgroups are compiled, build operations
-        for(int i = 0; i < token_groups.size(); ++i) {
+        for(std::size_t i = 0; i < token_groups.size(); ++i) {
             token_groups[i].second = token_groups[i].first.build_operation();
         }
 

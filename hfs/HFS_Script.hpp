@@ -43,7 +43,7 @@ namespace hfs {
          * \brief makes a hash of the current file
          * \retuns a valid hash on success or an empty string on failure
          */
-        std::string get_hash();
+        std::string get_hash(); // TODO:
 
         bool is_compiled() const;
 

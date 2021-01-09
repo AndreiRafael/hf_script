@@ -54,7 +54,7 @@ namespace hfs {
         runner->setup(operation, new_scope);
         if(from_script) {
             auto names = get_parameter_names(function_name, parameters.size());
-            for(int i = 0; i < names.size() && i < parameters.size(); ++i) {
+            for(std::size_t i = 0; i < names.size() && i < parameters.size(); ++i) {
                 *new_scope->get_variable(names[i]) = parameters[i];
             }
         }
@@ -71,6 +71,27 @@ namespace hfs {
             if(r == holder || r->has_superior_holder(holder)) {
                 return true;
             }
+        }
+        return false;
+    }
+
+    bool ScriptHolder::step_runner(core::OperationRunner* runner, unsigned int runner_id, ReturnData* returned_data) {
+        core::RunnerResult result;
+        int operations_left = operation_limit;
+        const bool no_limit = operation_limit <= 0;
+        do {
+            result = runner->step(this);
+        } while(result == core::RunnerResult::Ongoing && (no_limit || --operations_left > 0));
+
+        if(result == core::RunnerResult::Return) {
+            *returned_data = { true, runner_id, runner->get_returned_value() };
+            delete runner;
+            return true;
+        }
+        else if (!no_limit && operations_left <= 0) {//failed becaused reached operation_limit
+            *returned_data = { false, runner_id, Variable::create_null() };
+            delete runner;
+            return true;
         }
         return false;
     }
@@ -97,7 +118,7 @@ namespace hfs {
     }
 
     std::function<Variable(std::vector<Variable>)>* ScriptHolder::get_bound_function(const std::string_view function_name, const int param_count) {
-        for(int i = 0; i < bound_functions.size(); ++i) {
+        for(std::size_t i = 0; i < bound_functions.size(); ++i) {
             const auto def = bound_functions[i].first;
             if(def.name.compare(function_name) == 0 && (def.param_count == param_count || def.param_count == -1)) {
                 return &bound_functions[i].second;
@@ -168,14 +189,20 @@ namespace hfs {
     }
     
     unsigned int ScriptHolder::start_function(const std::string_view function_name, const std::vector<Variable> parameters) {
-        bool from_script;
         core::OperationRunner* new_runner;
         if(!create_function_runner(function_name, parameters, this->scope, &new_runner)) {
             return 0u;
         }
 
         while(++id_gen == 0u || operation_runners.find(id_gen) != operation_runners.end()) {}
-        operation_runners.insert(std::make_pair(id_gen, new_runner));
+
+        ReturnData returned_data = {false, 0, Variable::create_null() };
+        if(step_runner(new_runner, id_gen, &returned_data)) {//first step. If terminated, adds value ro results, else justs adds new runner to list
+            return_data.push_back(returned_data);
+        }
+        else {
+            operation_runners.insert(std::make_pair(id_gen, new_runner));
+        }
         return id_gen;
     }
 
@@ -186,22 +213,11 @@ namespace hfs {
         for(auto& pair : operation_runners) {
             auto& runner = pair.second;
             auto& id = pair.first;
-            core::RunnerResult result;
-            int operations_left = operation_limit;
-            const bool no_limit = operation_limit <= 0;
-            do {
-                result = runner->step(this);
-            } while(result == core::RunnerResult::Ongoing && (no_limit || --operations_left > 0));
-
-            if(result == core::RunnerResult::Return) {
-                return_data.push_back({ true, id, runner->get_returned_value() });
+            ReturnData returned_data = {false, 0, Variable::create_null() };
+            
+            if(step_runner(runner, id, &returned_data)) {
+                return_data.push_back(returned_data);
                 to_remove.push_back(id);
-                delete runner;
-            }
-            else if (!no_limit && operations_left <= 0) {//failed becaused reached operation_limit
-                return_data.push_back({ false, id, Variable::create_null() });
-                to_remove.push_back(id);
-                delete runner;
             }
         }
         
@@ -218,25 +234,20 @@ namespace hfs {
             return false;
         }
 
-        int operations_left = operation_limit;
-        const bool no_limit = operation_limit <= 0;
+        ReturnData returned_data = {false, 0, Variable::create_null() };
+        while(!step_runner(runner, 0, &returned_data)) {}
+        
+        *returned_value = returned_data.value;
+        return returned_data.success;
+    }
 
-        core::RunnerResult result;
-        do {
-            result = runner->step(this);
-        } while((result == core::RunnerResult::Ongoing || result == core::RunnerResult::Wait) && (no_limit || --operations_left > 0));
-
-        if(result == core::RunnerResult::Return) {
-            if(returned_value != nullptr) {
-                *returned_value = runner->get_returned_value();
-            }
-            delete runner;
+    bool ScriptHolder::get_returned_data(unsigned int function_id, ReturnData* returned_data) {
+        auto itr = std::find(return_data.begin(), return_data.end(), function_id);
+        if(itr != return_data.end()) {
+            *returned_data = *itr;
             return true;
         }
-        else {
-            delete runner;
-            return false;
-        }
+        return false;
     }
 
     Scope* ScriptHolder::get_scope() const {

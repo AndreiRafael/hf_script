@@ -47,6 +47,7 @@ namespace hfs {
 
         bool create_function_runner (const std::string_view function_name, const std::vector<Variable> parameters, Scope* top_scope, core::OperationRunner** new_runner);
         bool has_superior_holder(ScriptHolder* holder) const;
+        bool step_runner(core::OperationRunner* runner, unsigned int runner_id, ReturnData* return_data);//returns true if operation retuned
 
     public:
         ScriptHolder();
@@ -103,13 +104,11 @@ namespace hfs {
         std::vector<std::string> get_parameter_names(const std::string_view function_name, const unsigned int param_count);
 
         /**
-         * @brief Adds a function to the run queue, actual running happens in \ref ScriptHolder::step
+         * @brief Runs a function until it returns or is released. In the latter case, the function is later resumed in \ref ScriptHolder::step
          * @param function_name The name of the function
-         * @param parameters The static parameters to be passed to the function
-         * @returns An id, used to get the return value from \ref ScriptHolder::step
+         * @param parameters The parameters to be passed to the function
+         * @returns An id, used to get the return value with \ref ScriptHolder::get_returned_value
          */
-
-        //TODO: maybe step once when this is called??
         unsigned int start_function(const std::string_view function_name, const std::vector<Variable> parameters);
 
         /**
@@ -126,6 +125,15 @@ namespace hfs {
          * \returns An array of ids and variables returned from functions that ended this call
          */
         std::vector<ReturnData> step();
+
+        /**
+         * @brief Get the returned data from function calls. Once a function returns value, it is stored until @ref ScriptHolder::step is called again
+         * 
+         * @param returned_data A pointer to be filled with relevant information in case the function returns true
+         * @return true is the data for the desired id exists
+         * @return false otherwise
+         */
+        bool get_returned_data(unsigned int function_id, ReturnData* returned_data);
 
         /**
          * @brief Get the scope of this ScriptHolder. The scope created by this holder on construction
