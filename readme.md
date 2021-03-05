@@ -1,3 +1,5 @@
+This Readme and code itself are in construction and somewhat incomplete
+
 Hifire Script
 =====
 *Hifire Script* is a simple scripting language which operates by binding c++ functions and has coroutine support.
