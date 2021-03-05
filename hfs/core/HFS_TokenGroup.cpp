@@ -347,7 +347,7 @@ namespace hfs::core {
                             return false;
                         }
                     }
-                    else {//has to be set operation
+                    else {//has to be set operation TODO: may have operator before '='
                         type = TokenGroupType::Set;
                         auto itr = tokens.begin();
                         bool eq_found = false;
@@ -502,7 +502,7 @@ namespace hfs::core {
                     while(++itr != tokens.end()) {
                         if((itr->token.compare(",") == 0 && sqr_bracket_depth == 1) ||
                            (itr->token.compare("]") == 0 && --sqr_bracket_depth == 0)) {//finish entry
-                            Token fallback_key = { std::to_string(fallback_index++), itr->line, itr->column };
+                            Token fallback_key = { core::TokenType::Invalid, std::to_string(fallback_index++), itr->line, itr->column };
 
                             TokenGroup key_group(true, depth, separator_found ? sub_tokens_1 : std::vector<Token> { fallback_key });
                             TokenGroup value_group(true, depth, separator_found ? sub_tokens_2 : sub_tokens_1);

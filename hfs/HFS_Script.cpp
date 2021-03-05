@@ -25,7 +25,7 @@ namespace hfs {
         bool escaped = false;
         bool comment = false;
 
-        core::Token current_token = {"", 0, 0};
+        core::Token current_token = { core::TokenType::Invalid, "", 0, 0};
         std::vector<core::Token> tokens = std::vector<core::Token>();
         for(auto c : text) {//read each char and transform them into tokens
             //simple count
@@ -70,7 +70,7 @@ namespace hfs {
                     std::stringstream ss;
                     ss << c;
 
-                    core::Token tmp = { ss.str(), line_index, column_index };
+                    core::Token tmp = { core::TokenType::Invalid, ss.str(), line_index, column_index };
                     tokens.push_back(tmp);
                 }
                 else if(c == '\"') {

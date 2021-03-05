@@ -242,7 +242,7 @@ namespace hfs {
     }
 
     bool ScriptHolder::get_returned_data(unsigned int function_id, ReturnData* returned_data) {
-        auto itr = std::find(return_data.begin(), return_data.end(), function_id);
+        auto itr = std::find_if(return_data.begin(), return_data.end(), [&function_id] (ReturnData const& data) -> bool { return data.id == function_id; });
         if(itr != return_data.end()) {
             *returned_data = *itr;
             return true;

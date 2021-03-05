@@ -12,7 +12,9 @@ namespace hfs {
         Integer,
         Float,
         String,
-        Dictionary
+        Dictionary,
+        Array,//TODO:
+        Byte//TODO:
     };
 
     class Variable {

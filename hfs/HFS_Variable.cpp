@@ -127,7 +127,7 @@ namespace hfs {
         }
     }
 
-    void Variable::set_boolean(const bool value) {
+    void Variable::set_boolean(const bool value) {// TODO: make these manually for improved performance
         set(value ? "true" : "false");
     }
 

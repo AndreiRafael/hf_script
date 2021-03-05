@@ -22,7 +22,7 @@ namespace hfs {
         Variable value;
     };
 
-    typedef std::vector<Variable> ParameterList;
+    typedef std::vector<Variable> ParameterList;//TODO: use refs for better performance??
     typedef std::function<Variable(ParameterList)> BindableFunction;
 
     class ScriptHolder {
