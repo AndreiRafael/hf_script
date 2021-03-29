@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "core/HFS_Token.hpp"
+#include "core/HFS_TokenPattern.hpp"
 
 namespace hfs {
     enum class OperatorType {
@@ -30,10 +31,13 @@ namespace hfs {
         std::string text;
     };
 
+    class Script;
     class ScriptCompiler {
     private:
         std::vector<LogData> logs;//error/warning logs
         std::vector<Operator> operators;//all defined operators
+
+        core::TokenPattern* main_pattern = nullptr;
 
         static bool is_token_separator(char const& c);
 
@@ -42,6 +46,8 @@ namespace hfs {
         void push_log(const LogType type, const std::string text, core::Token const& token);
 
     public:
+        ScriptCompiler(bool default_patterns = true);
+
         /**
          * @brief Get an operator given its symbol
          * 

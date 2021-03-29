@@ -42,6 +42,8 @@ namespace hfs::utility {
                token.compare("else") == 0 ||
                token.compare("if") == 0 ||
                token.compare("while") == 0 ||
+               token.compare("break") == 0 ||
+               token.compare("continue") == 0 ||
                token.compare("delete") == 0;
     }
 
@@ -71,7 +73,7 @@ namespace hfs::utility {
                 hifen_count++;
             }
         }
-        return dot_count <= 1 && hifen_count <= 1 && num_count > 0 && num_count + dot_count + hifen_count == value.size();
+        return dot_count <= 1 && hifen_count <= 1 && num_count > 0 && (num_count + dot_count + hifen_count) == value.size();
     }
 
     //validates wheter a string may be used as a variable or function name
@@ -99,10 +101,10 @@ namespace hfs::utility {
         if(utility::validate_name(token)) {
             return core::TokenType::Name;
         }
+        else if(utility::is_raw_value(token)) {
+            return core::TokenType::RawValue;
+        }
         else if(utility::is_special_token(token)) {
-            if(utility::is_raw_value(token)) {
-                return core::TokenType::RawValue;
-            }
             return core::TokenType::Special;
         }
         else if(token.size() > 0 && std::all_of(token.begin(), token.end(), [] (const char& c) { return is_operator_symbol(c);} )) {

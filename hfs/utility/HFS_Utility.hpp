@@ -4,7 +4,7 @@
 #include <string>
 
 namespace hfs::core {
-    enum TokenType;
+    enum class TokenType;
 }
 
 namespace hfs::utility {

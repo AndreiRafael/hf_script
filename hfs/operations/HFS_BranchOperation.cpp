@@ -14,15 +14,7 @@ namespace hfs {
                                                   Operation** const next_operation,
                                                   Scope** const next_scope) const
     {
-        if(std::any_of(values.begin(),
-                       values.end(),
-                       [] (const Variable& var) { return var.get_type() == VariableType::Boolean && var.get_boolean_value(); } ))
-        {
-            *next_operation = true_operation;
-        }
-        else {
-            *next_operation = false_operation;
-        }
+        *next_operation = operation_array[values[0].get_boolean_value()];
 
         *next_scope = scope;
         *return_value = Variable::create_null();
@@ -30,10 +22,10 @@ namespace hfs {
     }
 
     void BranchOperation::set_true_operation(Operation* const operation) {
-        true_operation = operation;
+        operation_array[0] = operation;
     }
 
     void BranchOperation::set_false_operation(Operation* const operation) {
-        false_operation = operation;
+        operation_array[1] = operation;
     }
 }

@@ -2,12 +2,12 @@
 #define HFS_BRANCHOPERATION_HPP
 
 #include "HFS_Operation.hpp"
+#include <array>
 
 namespace hfs {
     class BranchOperation : public Operation {
     private:
-        Operation* true_operation;
-        Operation* false_operation;
+        std::array<Operation*, 2> operation_array;
 
     protected:
         OperationResult internal_run(ScriptHolder* holder,

@@ -30,6 +30,7 @@ namespace hfs {
         float float_value = 0.f;
         std::string string_value = "";//this exists because str value may be different than value when quotes are used
         std::unordered_map<std::string, Variable> dictionary = std::unordered_map<std::string, Variable>();
+        std::vector<Variable> array = std::vector<Variable>();
     public:
         static VariableType determine_type(const std::string value);
 
@@ -40,6 +41,7 @@ namespace hfs {
         static Variable       create_string(const std::string value);
         static Variable       create_dictionary(const std::vector<std::string> keys, const std::vector<Variable> values);
         static Variable       create_dictionary(const std::string key, const Variable value);
+        static Variable       create_array(const std::vector<Variable> values);
         static Variable       create_null();
         static Variable       create_copy(const Variable& other);
 
@@ -49,6 +51,7 @@ namespace hfs {
         void                  set_float(const float value);
         void                  set_string(const std::string value);
         void                  set_dictionary_entry(std::string key, Variable value);
+        void                  set_array_entry(const int index, Variable value);
         void                  set_null();
 
         bool                  get_boolean_value() const;
@@ -59,6 +62,9 @@ namespace hfs {
 
         Variable*             get_dictionary_entry(const std::string key);
         Variable*             get_or_create_dictionary_entry(const std::string key, const Variable default_value);
+
+        Variable*             get_array_entry(const int index);
+        Variable*             get_or_create_array_entry(const int index, const Variable default_value);
 
         VariableType          get_type() const;
 

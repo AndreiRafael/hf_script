@@ -11,6 +11,11 @@
 namespace fs=std::filesystem;
 
 namespace hfs {
+    ScriptFunctionDef::ScriptFunctionDef(const std::string name, const std::vector<std::string> parameter_names) {
+        this->name = name;
+        this->parameter_names = parameter_names;
+    }
+
     Script::~Script() {
         for(auto holder : associated_holders) {
             holder->remove_script(this);
@@ -18,8 +23,8 @@ namespace hfs {
     }
 
     bool Script::load_from_string(const std::string_view text) {
-        int line_index = 1;
-        int column_index = 0;
+        unsigned int line_index = 1;
+        unsigned int column_index = 0;
 
         bool is_code = true;
         bool escaped = false;

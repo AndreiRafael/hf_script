@@ -156,7 +156,7 @@ namespace hfs {
 
 
         auto entry = dictionary.find(key);
-        if(value.get_type() == VariableType::Null) {//remove or avoid adding
+        if(value.get_type() == VariableType::Null) {//remove or avoid adding  TODO: Set to null does not delete data anymore
             if(entry != dictionary.end()) {
                 dictionary.erase(entry);
             }
