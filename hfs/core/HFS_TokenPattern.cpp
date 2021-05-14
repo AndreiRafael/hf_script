@@ -1,21 +1,42 @@
 #include "HFS_TokenPattern.hpp"
 #include <cassert>
+#include <algorithm>
 
 namespace hfs::core {
+    AuxOp::AuxOp(Operation* const op, const int depth) {
+        this->op = op;
+        this->depth = depth;
+    }
+
     void AuxOpVector::reset() {
         aux_operations.clear();
     }
 
-    void AuxOpVector::set(const AuxOpType type, Operation* const op) {
-        aux_operations.insert_or_assign(type, op);
+    void AuxOpVector::push(const AuxOpType type, const AuxOp op) {
+        auto itr = aux_operations.find(type);
+        if(itr == aux_operations.end()) {//create new entry
+            aux_operations.insert(std::make_pair(type, std::stack<AuxOp>()));
+            itr = aux_operations.find(type);
+        }
+        itr->second.push(op);
     }
 
-    Operation* AuxOpVector::get(const AuxOpType type) {
+    AuxOp AuxOpVector::get(const AuxOpType type, const bool pop) {
         auto itr = aux_operations.find(type);
-        if(itr == aux_operations.end()) {
-            return nullptr;
+        if(itr == aux_operations.end() || itr->second.size() == 0) {
+            return AuxOp(nullptr, -1);
         }
-        return itr->second;
+        auto r = itr->second.top();
+        if(pop) {
+            itr->second.pop();
+        }
+        return r;
+    }
+
+
+    CompilationData::CompilationData(const int depth, const AuxOpVector auxoperaions) {
+        this->depth = depth;
+        this->aux_operations = aux_operations;
     }
 
 
@@ -41,15 +62,15 @@ namespace hfs::core {
         pattern.push_back(data);
     }
 
-    void TokenPattern::set_compile_function(std::function<CompilationResult(MatchResult*, AuxOpVector&)> compile_function) {
+    void TokenPattern::set_compile_function(std::function<CompilationResult(MatchResult*, CompilationData&)> compile_function) {
         do_compile = compile_function;
     }
 
-    MatchResult* TokenPattern::try_match(std::vector<Token>::iterator& token_itr, Token* error_token) {
+    MatchResult* TokenPattern::try_match(std::vector<TokenMatcher>::iterator& token_itr, Token* error_token) {
         decltype(pattern.size()) group = 0;
         std::vector<MatchGroup> match_groups;
         
-        Token bad_token = *token_itr;
+        Token bad_token = token_itr->token;
         while(group < pattern.size()) {
             auto g = pattern[group];
             int occurences = 0;
@@ -83,7 +104,7 @@ namespace hfs::core {
         return new MatchResult(match_groups, this);
     }
 
-    CompilationResult TokenPattern::compile(MatchResult* result, AuxOpVector& aux_operation) {
+    CompilationResult TokenPattern::compile(MatchResult* result, CompilationData& aux_operation) {
         if(do_compile != nullptr) {
             return do_compile(result, aux_operation);
         }

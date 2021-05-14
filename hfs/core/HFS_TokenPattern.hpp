@@ -5,6 +5,7 @@
 #include "../HFS_Script.hpp"
 #include <functional>
 #include <unordered_map>
+#include <stack>
 
 namespace hfs::core {
     enum class AuxOpType {
@@ -13,14 +14,30 @@ namespace hfs::core {
         LoopExit
     };
 
+    struct AuxOp {
+        Operation* op;
+        int depth;
+
+        AuxOp(Operation* const op, const int depth);
+    };
+
     struct AuxOpVector {
     private:
-         std::unordered_map<AuxOpType, Operation*> aux_operations = std::unordered_map<AuxOpType, Operation*>();
+         std::unordered_map<AuxOpType, std::stack<AuxOp>> aux_operations = std::unordered_map<AuxOpType, std::stack<AuxOp>>();
 
     public:
         void reset();
-        void set(const AuxOpType type, Operation* const op);
-        Operation* get(const AuxOpType type);
+        void push(const AuxOpType type, const AuxOp op);
+        void pop(const AuxOpType type);
+        AuxOp get(const AuxOpType type, const bool pop = true);
+    };
+
+
+    struct CompilationData {
+        int depth;
+        AuxOpVector aux_operations;
+
+        CompilationData(const int depth = 0, const AuxOpVector auxoperaions = AuxOpVector());
     };
 
     struct CompilationResult {
@@ -42,20 +59,20 @@ namespace hfs::core {
     private:
         std::vector<PatternData> pattern;
 
-        std::function<CompilationResult(MatchResult*, AuxOpVector&)> do_compile = nullptr;
+        std::function<CompilationResult(MatchResult*, CompilationData&)> do_compile = nullptr;
         PatternType type;
     public:
         TokenPattern(const PatternType type);
 
         void add_key_data(PatternData data);
-        void set_compile_function(std::function<CompilationResult(MatchResult* result, AuxOpVector& aux_operation)> compile_function);
+        void set_compile_function(std::function<CompilationResult(MatchResult* result, CompilationData& aux_operation)> compile_function);
 
-        MatchResult* try_match(std::vector<Token>::iterator& token_itr, Token* error_token);
+        MatchResult* try_match(std::vector<TokenMatcher>::iterator& token_itr, Token* error_token);
         
         /**
          * @brief Compiles Pattern and sub patterns into an array of operations
          */
-        CompilationResult compile(MatchResult* result, AuxOpVector& aux_operations);
+        CompilationResult compile(MatchResult* result, CompilationData& aux_operations);
 
         std::size_t group_count() const;
         PatternType get_type();

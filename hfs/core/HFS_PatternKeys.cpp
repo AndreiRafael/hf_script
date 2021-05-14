@@ -2,6 +2,7 @@
 #include "HFS_TokenPattern.hpp"
 #include <algorithm>
 #include <cassert>
+#include "../HFS_ScriptCompiler.hpp"
 
 namespace hfs::core {
     Match::Match(const bool matched, const Token matched_token) {
@@ -12,7 +13,7 @@ namespace hfs::core {
 
     Match::Match(const bool matched, MatchResult* const sub_match) {
         this->matched = matched;
-        this->matched_token = Token(TokenType::Invalid);
+        this->matched_token = Token();
         this->sub_match = sub_match;
     }
 
@@ -34,15 +35,45 @@ namespace hfs::core {
     }
 
 
+    TokenMatcher::TokenMatcher(Token token) {
+        this->token = token;
+        this->failed_keys = std::vector<PatternKey*>();
+    }
+
+    bool TokenMatcher::has_failed(PatternKey* key) {
+        return std::any_of(failed_keys.begin(), failed_keys.end(), [key](auto k) { return k == key; }); 
+    }
+
+
+    Match PatternKey::match(std::vector<TokenMatcher>::iterator& token_itr) {
+        auto prev_token = token_itr;
+        if(token_itr->has_failed(this)) {
+            return Match::failed_match(token_itr->token);
+        }
+        else {
+            token_itr->failed_keys.push_back(this);//temporarily adds self to fail list so that child keys don't loop
+        }
+
+        auto r = internal_match(token_itr);
+        if(r.matched) {
+            auto itr = std::find(prev_token->failed_keys.begin(), prev_token->failed_keys.end(), this);
+            if(itr != prev_token->failed_keys.end()) {
+                prev_token->failed_keys.erase(itr);//removes self from fail list because of success
+            }
+        }
+        return r;
+    }
+
+
     TextPatternKey::TextPatternKey(const std::string text) {
         this->text = text;
     }
 
-    Match TextPatternKey::match(std::vector<Token>::iterator& token_itr) const {
-        if(token_itr->token.compare(text) == 0) {
-            return Match(true, *token_itr++);
+    Match TextPatternKey::internal_match(std::vector<TokenMatcher>::iterator& token_itr) const {
+        if(token_itr->token.token.compare(text) == 0) {
+            return Match(true, token_itr++->token);
         }
-        return Match::failed_match(*token_itr);
+        return Match::failed_match(token_itr->token);
     }
 
 
@@ -50,11 +81,11 @@ namespace hfs::core {
         this->type = type;
     }
 
-    Match TokenTypePatternKey::match(std::vector<Token>::iterator& token_itr) const {
-        if(token_itr->type == type) {
-            return Match(true, *token_itr++);
+    Match TokenTypePatternKey::internal_match(std::vector<TokenMatcher>::iterator& token_itr) const {
+        if(token_itr->token.type == type) {
+            return Match(true, token_itr++->token);
         }
-        return Match::failed_match(*token_itr);
+        return Match::failed_match(token_itr->token);
     }
 
 
@@ -62,7 +93,7 @@ namespace hfs::core {
         this->pattern = pattern;
     }
 
-    Match OtherPatternKey::match(std::vector<Token>::iterator& token_itr) const {
+    Match OtherPatternKey::internal_match(std::vector<TokenMatcher>::iterator& token_itr) const {
         Token bad_token = Token(TokenType::Invalid);
         auto res = pattern->try_match(token_itr, &bad_token);
         if(res != nullptr) {
@@ -77,7 +108,7 @@ namespace hfs::core {
         this->type_mask = type_mask;
     }
 
-    Match PatternListPatternKey::match(std::vector<Token>::iterator& token_itr) const {
+    Match PatternListPatternKey::internal_match(std::vector<TokenMatcher>::iterator& token_itr) const {
         auto cpy = patterns;
         std::sort(cpy.begin(), cpy.end(), [] (TokenPattern* a, TokenPattern* b) {
             return a->group_count() > b->group_count();

@@ -14,7 +14,7 @@ namespace hfs {
                                                    Scope** const next_scope) const
     {
         Scope* s = scope;
-        while(s != holder->get_scope() && s != nullptr) {
+        while(s != holder->get_scope() && s != nullptr) {// TODO: scope goes on runner
             Scope* next = s->get_parent();
             delete s;
             s = next;

@@ -138,6 +138,53 @@ namespace hfs {
         return std::vector<std::string>();
     }
 
+
+    bool ScriptHolder::get_operator(const std::string symbol, const core::OperatorType type, core::Operator* op) const{
+        if(validate_operator(symbol)) {
+            for(auto o : operators) {
+                if(o.symbol.compare(symbol) == 0 && (static_cast<char>(o.type) & static_cast<char>(type)) != 0) {
+                    if(op != nullptr) {
+                        *op = o;
+                    }
+                    return true;
+                }
+            }
+        }
+
+        if(op != nullptr) {
+            *op = { "", "", core::OperatorType::None };
+        }
+        return false;
+    }
+
+    bool ScriptHolder::define_operator(const std::string symbol, const std::string function, const core::OperatorType type) {
+        if(type == core::OperatorType::None || type == core::OperatorType::Any || !validate_operator(symbol) || get_operator(symbol, type, nullptr)) {
+            return false;// TODO: push error logs for each error type
+        }
+
+        core::Operator o = { symbol, function, type };
+        operators.push_back(o);
+        return true;
+    }
+
+    bool ScriptHolder::undefine_operator(const std::string symbol, const core::OperatorType type) {
+        auto comp = [&] (core::Operator const& op) { return op.type == type && op.symbol.compare(symbol) == 0; };
+        auto itr = std::find_if(operators.begin(), operators.end(), comp);
+        if(itr != operators.end()) {
+            operators.erase(std::find_if(operators.begin(), operators.end(), comp)); 
+            return true;
+        }
+        return false;
+    }
+
+    bool ScriptHolder::validate_operator(std::string const& symbol) {
+        if(symbol.size() == 0 || symbol.compare("=") == 0) {
+            return false;
+        }
+
+        return std::all_of(symbol.begin(), symbol.end(), [] (char const& c) { return utility::is_operator_symbol(c); });
+    }
+
     bool ScriptHolder::add_script(Script* script, std::string* error_string) {
         if(script == nullptr || !script->is_compiled()) {
             if(error_string != nullptr) {

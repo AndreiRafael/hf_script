@@ -4,9 +4,12 @@
 #include <vector>
 #include "HFS_Token.hpp"
 #include "../operations/HFS_Operation.hpp"
+#include "HFS_Operator.hpp"
 
+class ScriptCompiler;
 namespace hfs::core {
     class TokenPattern;
+    class PatternKey;
 
     struct MatchResult;
     struct Match {
@@ -37,6 +40,20 @@ namespace hfs::core {
         TokenPattern* pattern;
     };
 
+
+    /**
+     * @brief Contains a token and a list of patterns that failed to match that token
+     * 
+     */
+    struct TokenMatcher {
+        Token token;
+        std::vector<PatternKey*> failed_keys;
+
+        TokenMatcher(Token token);
+
+        bool has_failed(PatternKey* key);
+    };
+
     enum PatternType {
         None       = 0b000,
         Definition = 0b001,
@@ -46,8 +63,10 @@ namespace hfs::core {
     };
 
     class PatternKey {
+    protected:
+        virtual Match internal_match(std::vector<TokenMatcher>::iterator& token_itr) const = 0;
     public:
-        virtual Match match(std::vector<Token>::iterator& token_itr) const = 0;
+        Match match(std::vector<TokenMatcher>::iterator& token_itr);
     };
 
     /**
@@ -56,10 +75,10 @@ namespace hfs::core {
     class TokenTypePatternKey: public PatternKey {
     private:
         TokenType type;
+    protected:
+        Match internal_match(std::vector<TokenMatcher>::iterator& token_itr) const final;
     public:
         TokenTypePatternKey(const TokenType type);
-
-        Match match(std::vector<Token>::iterator& token_itr) const final;
     };
 
     /**
@@ -68,11 +87,11 @@ namespace hfs::core {
     class TextPatternKey: public PatternKey {
     private:
         std::string text;
+    protected:
+        Match internal_match(std::vector<TokenMatcher>::iterator& token_itr) const final;
     public:
         TextPatternKey(const std::string text);
-
-        Match match(std::vector<Token>::iterator& token_itr) const final;
-    };    
+    };
 
     /**
      * @brief Key that matches the whole of a single Pattern
@@ -80,10 +99,10 @@ namespace hfs::core {
     class OtherPatternKey: public PatternKey {
     private:
         TokenPattern* pattern = nullptr;
+    protected:
+        Match internal_match(std::vector<TokenMatcher>::iterator& token_itr) const final;
     public:
         OtherPatternKey(TokenPattern* pattern);
-
-        Match match(std::vector<Token>::iterator& token_itr) const final;
     };
 
     /**
@@ -93,10 +112,10 @@ namespace hfs::core {
     private:
         std::vector<TokenPattern*> patterns;
         PatternType type_mask = PatternType::Any;
+    protected:
+        Match internal_match(std::vector<TokenMatcher>::iterator& token_itr) const final;
     public:
         PatternListPatternKey(PatternType type_mask, std::vector<TokenPattern*> patterns);
-
-        Match match(std::vector<Token>::iterator& token_itr) const final;
     };
 }
 

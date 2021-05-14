@@ -8,3 +8,4 @@
 #include "HFS_ReleaseOperation.hpp"
 #include "HFS_SetOperation.hpp"
 #include "HFS_SubCallOperation.hpp"
+#include "HFS_OperatorOperation.hpp"

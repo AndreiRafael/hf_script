@@ -19,15 +19,6 @@ namespace hfs {
                c == '\n';
     }
 
-    bool ScriptCompiler::validate_operator(std::string const& symbol) {
-        if(symbol.size() == 0 || symbol.compare("=") == 0) {
-            return false;
-        }
-
-        return std::all_of(symbol.begin(), symbol.end(), [] (char const& c) { return utility::is_operator_symbol(c); });
-    }
-
-
     ScriptCompiler::ScriptCompiler(bool default_patterns) {
         if(default_patterns) {// TODO: overview deletes etc
             // TODO: way to make continue/break work
@@ -62,9 +53,12 @@ namespace hfs {
             auto tp_raw = new core::TokenPattern(core::PatternType::Value);// raw
             auto tp_func_call = new core::TokenPattern(core::PatternType::Value);// name ( value, value )
             auto tp_paren_value = new core::TokenPattern(core::PatternType::Value);// ( value )
+            auto tp_single_op_value = new core::TokenPattern(core::PatternType::Value);// !value
+            auto tp_double_op_value = new core::TokenPattern(core::PatternType::Value);// value + value
 
             std::vector<core::TokenPattern*> midcode_patterns = { tp_sub_scope, tp_code_line, tp_while_loop, tp_if_conditional };
-            std::vector<core::TokenPattern*> value_patterns = { tp_var_retrieve, tp_var_set, tp_raw, tp_func_call, tp_paren_value };
+            std::vector<core::TokenPattern*> value_patterns = { tp_var_retrieve, tp_var_set, tp_raw, tp_func_call, tp_paren_value,
+                                                                tp_double_op_value, tp_single_op_value };
 
             tp_param_comma->add_key_data(core::PatternData(new core::TokenTypePatternKey(core::TokenType::Name)));
             tp_param_comma->add_key_data(core::PatternData(new core::TextPatternKey(",")));
@@ -91,25 +85,27 @@ namespace hfs {
             tp_sub_scope->add_key_data(core::PatternData(new core::TextPatternKey("{")));                                                   //0
             tp_sub_scope->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Any, midcode_patterns), 0, -1));//1
             tp_sub_scope->add_key_data(core::PatternData(new core::TextPatternKey("}")));                                                   //2
-            tp_sub_scope->set_compile_function([] (core::MatchResult* res, core::AuxOpVector& aux_operations) -> core::CompilationResult {
+            tp_sub_scope->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
                 auto fs = new FlattenScopeOperation();// }
-                fs->set_next_operation(aux_operations.get(core::AuxOpType::Next));
+                fs->set_next_operation(c_data.aux_operations.get(core::AuxOpType::Next).op);
+                c_data.depth++;
 
                 auto vec = std::vector<Operation*>();
                 vec.push_back(fs);// }
                 auto matches = res->groups[1].matches;//lines & etc
                 std::reverse(matches.begin(), matches.end());
                 for(auto m : matches) {
-                    aux_operations.set(core::AuxOpType::Next, vec.back());
-                    auto other_ops = m.sub_match->pattern->compile(m.sub_match, aux_operations).operations;
+                    c_data.aux_operations.push(core::AuxOpType::Next, core::AuxOp(vec.back(), c_data.depth));
+                    auto other_ops = m.sub_match->pattern->compile(m.sub_match, c_data).operations;
                     for(auto b_itr = other_ops.rbegin(); b_itr != other_ops.rend(); ++b_itr) {
                         vec.push_back(*b_itr);
                     }
                 }
+                c_data.depth--;
                 auto ds = new DeepenScopeOperation();
                 ds->set_next_operation(vec.back());
                 vec.push_back(ds);// { 
-                aux_operations.set(core::AuxOpType::Next, vec.back());               
+                c_data.aux_operations.push(core::AuxOpType::Next, core::AuxOp(vec.back(), c_data.depth));          
 
                 std::reverse(vec.begin(), vec.end());//reverse back to normal order
                 return core::CompilationResult(vec);
@@ -117,16 +113,15 @@ namespace hfs {
 
             tp_code_line->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Value, value_patterns)));//0
             tp_code_line->add_key_data(core::PatternData(new core::TextPatternKey(";")));                                            //1
-            tp_code_line->set_compile_function([] (core::MatchResult* res, core::AuxOpVector& aux_operations) -> std::vector<Operation*> {
+            tp_code_line->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> std::vector<Operation*> {
                 auto match = res->groups[0].matches[0].sub_match;//only uses main match
-                auto op = match->pattern->compile(match, aux_operations).operations[0];
+                auto op = match->pattern->compile(match, c_data).operations[0];
                 auto seq = dynamic_cast<SequentialOperation*>(op);
                 if(!seq) {
                     auto sub = new SubCallOperation(op);
-                    sub->set_next_operation(aux_operations.get(core::AuxOpType::Next));
-                    return std::vector<Operation*> { sub };
+                    op = seq = sub;
                 }
-                seq->set_next_operation(aux_operations.get(core::AuxOpType::Next));
+                seq->set_next_operation(c_data.aux_operations.get(core::AuxOpType::Next).op);
                 return std::vector<Operation*> { op };
             });
 
@@ -135,18 +130,18 @@ namespace hfs {
             tp_while_loop->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Value, value_patterns)));//2
             tp_while_loop->add_key_data(core::PatternData(new core::TextPatternKey(")")));                                            //3
             tp_while_loop->add_key_data(core::PatternData(new core::OtherPatternKey(tp_sub_scope)));                                  //4
-            tp_while_loop->set_compile_function([] (core::MatchResult* res, core::AuxOpVector& aux_operations) -> core::CompilationResult {
+            tp_while_loop->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
                 auto vec = std::vector<Operation*>();
                 
                 auto cond_match = res->groups[2].matches[0].sub_match;
-                auto branch = new BranchOperation(cond_match->pattern->compile(cond_match, core::AuxOpVector()).operations[0]);
-                branch->set_false_operation(aux_operations.get(core::AuxOpType::Next));
+                auto branch = new BranchOperation(cond_match->pattern->compile(cond_match, core::CompilationData()).operations[0]);
+                branch->set_false_operation(c_data.aux_operations.get(core::AuxOpType::Next, false).op);
 
-                aux_operations.set(core::AuxOpType::LoopEntry, branch);
-                aux_operations.set(core::AuxOpType::LoopExit, aux_operations.get(core::AuxOpType::Next));
+                c_data.aux_operations.push(core::AuxOpType::LoopEntry, core::AuxOp(branch, c_data.depth));
+                c_data.aux_operations.push(core::AuxOpType::LoopExit, c_data.aux_operations.get(core::AuxOpType::Next));
                 
                 auto scope_match = res->groups[4].matches[0].sub_match;
-                auto scope_res = scope_match->pattern->compile(scope_match, aux_operations);
+                auto scope_res = scope_match->pattern->compile(scope_match, c_data);
 
                 branch->set_true_operation(scope_res.operations[0]);
                 
@@ -167,15 +162,15 @@ namespace hfs {
             tp_if_conditional->add_key_data(core::PatternData(new core::OtherPatternKey(tp_sub_scope)));                                  //4
             tp_if_conditional->add_key_data(core::PatternData(new core::OtherPatternKey(tp_elif), 0, -1));                                //5
             tp_if_conditional->add_key_data(core::PatternData(new core::OtherPatternKey(tp_else), 0, 1));                                 //6
-            tp_if_conditional->set_compile_function([] (core::MatchResult* res, core::AuxOpVector& aux_operation) -> core::CompilationResult {
-                auto exit_op = aux_operation.get(core::AuxOpType::Next);
+            tp_if_conditional->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
+                auto exit_op = c_data.aux_operations.get(core::AuxOpType::Next).op;
                 auto vec = std::vector<Operation*>();
                 
                 //does everything backwards bc we need to know next operations and such
                 auto else_matches = res->groups[6].matches;
-                if(else_matches.size() > 0) {
+                if(else_matches.size() > 0) {//TODO: check if next op is working ok here bc of c_data
                     auto m = else_matches[0].sub_match->groups[1].matches[0].sub_match;
-                    auto ops = m->pattern->compile(m, aux_operation).operations;
+                    auto ops = m->pattern->compile(m, c_data).operations;
                     for(auto op : ops) {
                         vec.push_back(op);
                     }
@@ -184,18 +179,18 @@ namespace hfs {
                 auto elif_matches = res->groups[5].matches;
                 for(auto itr = elif_matches.rbegin(); itr != elif_matches.rend(); ++itr) {
                     auto vm = itr->sub_match->groups[3].matches[0].sub_match;//value match
-                    auto branch = new BranchOperation(vm->pattern->compile(vm, core::AuxOpVector()).operations[0]);
-                    branch->set_false_operation(aux_operation.get(core::AuxOpType::Next));
+                    auto branch = new BranchOperation(vm->pattern->compile(vm, core::CompilationData()).operations[0]);
+                    branch->set_false_operation(c_data.aux_operations.get(core::AuxOpType::Next).op);
 
                     auto sm = itr->sub_match->groups[5].matches[0].sub_match;//scope match
-                    auto ops = sm->pattern->compile(sm, aux_operation).operations;
+                    auto ops = sm->pattern->compile(sm, c_data).operations;
 
                     branch->set_true_operation(ops[0]);
 
                     auto seq = dynamic_cast<SequentialOperation*>(ops.back());//if true, skips other elifs/elses
                     seq->set_next_operation(exit_op);
 
-                    aux_operation.set(core::AuxOpType::Next, branch);
+                    c_data.aux_operations.push(core::AuxOpType::Next, core::AuxOp(branch, c_data.depth));
                     for(auto r_itr = ops.rbegin(); r_itr != ops.rend(); ++r_itr) {
                         vec.insert(vec.begin(), *r_itr);
                     }
@@ -204,18 +199,18 @@ namespace hfs {
 
                 {//main match
                     auto vm = res->groups[2].matches[0].sub_match;
-                    auto branch = new BranchOperation(vm->pattern->compile(vm, core::AuxOpVector()).operations[0]);
-                    branch->set_false_operation(aux_operation.get(core::AuxOpType::Next));
+                    auto branch = new BranchOperation(vm->pattern->compile(vm, core::CompilationData()).operations[0]);
+                    branch->set_false_operation(c_data.aux_operations.get(core::AuxOpType::Next).op);
 
                     auto sm = res->groups[4].matches[0].sub_match;
-                    auto ops = sm->pattern->compile(sm, aux_operation).operations;
+                    auto ops = sm->pattern->compile(sm, c_data).operations;
 
                     branch->set_true_operation(ops[0]);
 
                     auto seq = dynamic_cast<SequentialOperation*>(ops.back());//if true, skips other elifs/elses
                     seq->set_next_operation(exit_op);
 
-                    aux_operation.set(core::AuxOpType::Next, branch);
+                    c_data.aux_operations.push(core::AuxOpType::Next, core::AuxOp(branch, c_data.depth));
                     for(auto r_itr = ops.rbegin(); r_itr != ops.rend(); ++r_itr) {
                         vec.insert(vec.begin(), *r_itr);
                     }
@@ -229,18 +224,18 @@ namespace hfs {
             tp_sqr_bracket_val->add_key_data(core::PatternData(new core::TextPatternKey("[")));
             tp_sqr_bracket_val->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Value, value_patterns)));
             tp_sqr_bracket_val->add_key_data(core::PatternData(new core::TextPatternKey("]")));
-            tp_sqr_bracket_val->set_compile_function([] (core::MatchResult* res, core::AuxOpVector& aux_operation) -> core::CompilationResult {
+            tp_sqr_bracket_val->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
                 auto match = res->groups[1].matches[0].sub_match;
-                return core::CompilationResult({ match->pattern->compile(match, core::AuxOpVector()) });
+                return core::CompilationResult({ match->pattern->compile(match, core::CompilationData()) });
             });
 
             tp_var_retrieve->add_key_data(core::PatternData(new core::TokenTypePatternKey(core::TokenType::Name)));
             tp_var_retrieve->add_key_data(core::PatternData(new core::OtherPatternKey(tp_sqr_bracket_val), 0, -1));
-            tp_var_retrieve->set_compile_function([] (core::MatchResult* res, core::AuxOpVector& aux_operation) -> core::CompilationResult {
+            tp_var_retrieve->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
                 auto op = new VariableRetrievalOperation(res->groups[0].matches[0].matched_token.token);
                 auto key_matches = res->groups[1].matches;
                 for(auto k : key_matches) {
-                    op->add_dictionary_key(k.sub_match->pattern->compile(k.sub_match, core::AuxOpVector()).operations[0]);
+                    op->add_dictionary_key(k.sub_match->pattern->compile(k.sub_match, core::CompilationData()).operations[0]);
                 }
 
                 return core::CompilationResult({ op });
@@ -249,19 +244,19 @@ namespace hfs {
             tp_var_set->add_key_data(core::PatternData(new core::OtherPatternKey(tp_var_retrieve)));
             tp_var_set->add_key_data(core::PatternData(new core::TextPatternKey("=")));
             tp_var_set->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Value, value_patterns)));
-            tp_var_set->set_compile_function([] (core::MatchResult* res, core::AuxOpVector& aux_operation) -> core::CompilationResult {
+            tp_var_set->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
                 auto retrieve_mr = res->groups[0].matches[0].sub_match;
-                auto retrieve_op = dynamic_cast<VariableRetrievalOperation*>(retrieve_mr->pattern->compile(retrieve_mr, core::AuxOpVector()).operations[0]);
+                auto retrieve_op = dynamic_cast<VariableRetrievalOperation*>(retrieve_mr->pattern->compile(retrieve_mr, core::CompilationData()).operations[0]);
 
                 auto value_mr = res->groups[2].matches[0].sub_match;
-                auto value_op = value_mr->pattern->compile(value_mr, core::AuxOpVector()).operations[0];
+                auto value_op = value_mr->pattern->compile(value_mr, core::CompilationData()).operations[0];
 
                 auto op = new SetOperation(retrieve_op, value_op);
                 return core::CompilationResult({ op });
             });
 
             tp_raw->add_key_data(core::PatternData(new core::TokenTypePatternKey(core::TokenType::RawValue)));
-            tp_raw->set_compile_function([] (core::MatchResult* res, core::AuxOpVector& aux_operation) -> core::CompilationResult {
+            tp_raw->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
                 return core::CompilationResult({ new RawValueOperation(res->groups[0].matches[0].matched_token.token) });
             });
 
@@ -269,7 +264,7 @@ namespace hfs {
             tp_func_call->add_key_data(core::PatternData(new core::TextPatternKey("(")));                       //1
             tp_func_call->add_key_data(core::PatternData(new core::OtherPatternKey(tp_value_list), 0, 1));      //2
             tp_func_call->add_key_data(core::PatternData(new core::TextPatternKey(")")));                       //3
-            tp_func_call->set_compile_function([] (core::MatchResult* res, core::AuxOpVector& aux_operation) -> core::CompilationResult {
+            tp_func_call->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
                 auto func_name = res->groups[0].matches[0].matched_token.token;
                 std::vector<Operation*> params;
                 
@@ -279,11 +274,11 @@ namespace hfs {
                     auto comma_params = match.sub_match->groups[0].matches;
                     for (auto comma_param : comma_params)
                     {
-                        auto p = comma_param.sub_match->groups[0].matches[0].sub_match;
-                        params.push_back(p->pattern->compile(p, core::AuxOpVector()).operations[0]);
+                        auto p = comma_param.sub_match->groups[0].matches[0].sub_match;//param data match
+                        params.push_back(p->pattern->compile(p, core::CompilationData()).operations[0]);
                     }
                     auto last_param = match.sub_match->groups[1].matches[0].sub_match;
-                    params.push_back(last_param->pattern->compile(last_param, core::AuxOpVector()).operations[0]);
+                    params.push_back(last_param->pattern->compile(last_param, core::CompilationData()).operations[0]);
                 }
 
                 return core::CompilationResult({ new SubCallOperation(new FunctionCallOperation(func_name, params)) });
@@ -292,9 +287,34 @@ namespace hfs {
             tp_paren_value->add_key_data(core::PatternData(new core::TextPatternKey("(")));                                            //0
             tp_paren_value->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Value, value_patterns)));//1
             tp_paren_value->add_key_data(core::PatternData(new core::TextPatternKey(")")));                                            //2
-            tp_paren_value->set_compile_function([] (core::MatchResult* res, core::AuxOpVector& aux_operations) -> core::CompilationResult {
+            tp_paren_value->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
                 auto mr = res->groups[1].matches[0].sub_match;
-                return core::CompilationResult(mr->pattern->compile(mr, core::AuxOpVector()));
+                return mr->pattern->compile(mr, core::CompilationData());//TODO: see if this works properly for ordering functions
+            });
+
+            tp_single_op_value->add_key_data(core::PatternData(new core::TokenTypePatternKey(core::TokenType::Operator)));                 //0
+            tp_single_op_value->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Value, value_patterns)));//1
+            tp_single_op_value->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
+                auto operator_str = res->groups[0].matches[0].matched_token.token;
+                auto value_match = res->groups[1].matches[0].sub_match;
+                auto value_op = value_match->pattern->compile(value_match, core::CompilationData()).operations[0];
+                
+                return core::CompilationResult({ new OperatorOperation(operator_str, value_op) });
+            });
+
+            tp_double_op_value->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Value, value_patterns))); //0
+            tp_double_op_value->add_key_data(core::PatternData(new core::TokenTypePatternKey(core::TokenType::Operator)));                  //1
+            tp_double_op_value->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Value, value_patterns))); //2
+            tp_double_op_value->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
+                auto operator_str = res->groups[1].matches[0].matched_token.token;
+
+                auto value1_match = res->groups[0].matches[0].sub_match;
+                auto value2_match = res->groups[2].matches[0].sub_match;
+
+                auto value1_op = value1_match->pattern->compile(value1_match, core::CompilationData()).operations[0];
+                auto value2_op = value2_match->pattern->compile(value2_match, core::CompilationData()).operations[0];
+                
+                return core::CompilationResult({ new OperatorOperation(operator_str, value1_op, value2_op) });
             });
 
             tp_func_def->add_key_data(core::PatternData(new core::TextPatternKey("func")));                    //0
@@ -303,10 +323,10 @@ namespace hfs {
             tp_func_def->add_key_data(core::PatternData(new core::OtherPatternKey(tp_param_list), 0, 1));      //3
             tp_func_def->add_key_data(core::PatternData(new core::TextPatternKey(")")));                       //4
             tp_func_def->add_key_data(core::PatternData(new core::OtherPatternKey(tp_sub_scope)));             //5
-            tp_func_def->set_compile_function([] (core::MatchResult* res, core::AuxOpVector& aux_operations) -> core::CompilationResult {
-                auto sub_match = res->groups[5].matches[0].sub_match;
+            tp_func_def->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
+                auto sub_match = res->groups[5].matches[0].sub_match;//sub scope match
                 
-                auto ops = sub_match->pattern->compile(sub_match, aux_operations).operations;
+                auto ops = sub_match->pattern->compile(sub_match, c_data).operations;
 
                 auto func_name = res->groups[1].matches[0].matched_token.token;
 
@@ -330,14 +350,14 @@ namespace hfs {
             main_pattern = new core::TokenPattern(core::PatternType::Definition);                                    //0
             main_pattern->add_key_data(core::PatternData(new core::OtherPatternKey(tp_func_def), 0, -1));            //1
             main_pattern->add_key_data(core::PatternData(new core::TokenTypePatternKey(core::TokenType::EndOfFile)));//2
-            main_pattern->set_compile_function([] (core::MatchResult* res, core::AuxOpVector& aux_operations) -> core::CompilationResult {
+            main_pattern->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
                 auto ops = std::vector<Operation*>();
                 auto func_defs = std::vector<ScriptFunctionDef>();
                 
                 auto func_matches = res->groups[1].matches;
                 for(auto m : func_matches) {
-                    aux_operations.reset();
-                    auto cr = m.sub_match->pattern->compile(m.sub_match, aux_operations);
+                    c_data.aux_operations.reset();
+                    auto cr = m.sub_match->pattern->compile(m.sub_match, c_data);
 
                     for(auto op : cr.operations) {
                         ops.push_back(op);
@@ -352,24 +372,6 @@ namespace hfs {
         }
     }
 
-    bool ScriptCompiler::get_operator(const std::string symbol, const OperatorType type, Operator* op) const{
-        if(validate_operator(symbol)) {
-            for(auto o : operators) {
-                if(o.symbol.compare(symbol) == 0 && (static_cast<char>(o.type) & static_cast<char>(type)) != 0) {
-                    if(op != nullptr) {
-                        *op = o;
-                    }
-                    return true;
-                }
-            }
-        }
-
-        if(op != nullptr) {
-            *op = { "", "", OperatorType::None };
-        }
-        return false;
-    }
-
     void ScriptCompiler::push_log(const LogType type, const std::string text, core::Token const& token) {
         std::string msg = std::regex_replace(text, std::regex("%t"), token.token);
         std::stringstream ss;
@@ -378,27 +380,7 @@ namespace hfs {
         logs.push_back(new_log);
     }
 
-    bool ScriptCompiler::define_operator(const std::string symbol, const std::string function, const OperatorType type) {
-        if(type == OperatorType::None || type == OperatorType::Any || !validate_operator(symbol) || get_operator(symbol, type, nullptr)) {
-            return false;// TODO: push error logs for each error type
-        }
-
-        Operator o = { symbol, function, type };
-        operators.push_back(o);
-        return true;
-    }
-
-    bool ScriptCompiler::undefine_operator(const std::string symbol, const OperatorType type) {
-        auto comp = [&] (Operator const& op) { return op.type == type && op.symbol.compare(symbol) == 0; };
-        auto itr = std::find_if(operators.begin(), operators.end(), comp);
-        if(itr != operators.end()) {
-            operators.erase(std::find_if(operators.begin(), operators.end(), comp)); 
-            return true;
-        }
-        return false;
-    }
-
-    std::vector<core::Token> ScriptCompiler::tokenize_from_file(std::string path) {
+    std::vector<core::TokenMatcher> ScriptCompiler::tokenize_from_file(std::string path) {
         fs::path p(path);
         if(fs::exists(p) && fs::is_regular_file(p)) {
             std::string file_text;
@@ -411,10 +393,10 @@ namespace hfs {
             return tokenize_from_text(file_text);
         }
 
-        return std::vector<core::Token>();
+        return std::vector<core::TokenMatcher>();
     }
 
-    std::vector<core::Token> ScriptCompiler::tokenize_from_text(std::string text) {
+    std::vector<core::TokenMatcher> ScriptCompiler::tokenize_from_text(std::string text) {
         std::remove_if(text.begin(), text.end(), [] (char const& ch) { return ch == '\r'; });
 
         auto itr = text.begin();
@@ -457,7 +439,7 @@ namespace hfs {
             return false;
         };
 
-        auto token_vector = std::vector<core::Token>();
+        auto token_vector = std::vector<core::TokenMatcher>();
         if(itr == text.end()) {//premature return
             return token_vector;
         }
@@ -511,25 +493,8 @@ namespace hfs {
                     }
                     //if next token is likely a number, consumes last operator if it is a minus sign
                     bool minus_cut = (new_c == 46 || (new_c >= 48 && new_c <=57)) && operator_str[operator_str.length() - 1] == '-';
-                    auto breakdown_operator = [this, &operator_str] () -> bool {
-                        if(operator_str.compare("=") != 0 && get_operator(operator_str, OperatorType::Any, nullptr)) {
-                            return false;
-                        }
-                        if(operator_str[0] == '=') {//separates into two operators
-                            operator_str = operator_str.substr(0, operator_str.length() - 1);
-                            return true;
-                        }
-                        return false;
-                    };
-                    if(breakdown_operator()) {
-                        char_to_token('=');
-                        push_token();
-                    }
                     for(int i = 0; i < operator_str.length() - (minus_cut ? 1 : 0); ++i) {
                         char_to_token(operator_str[i]);
-                    }
-                    if(current_token.token.size() > 0 && !get_operator(current_token.token, OperatorType::Any, nullptr)) {
-                        push_log(LogType::Error, "undefined Operator: \"%t\"", current_token);
                     }
                     push_token();
                     if(minus_cut) {
@@ -583,7 +548,7 @@ namespace hfs {
         if(mr != nullptr) {
             auto matches = mr->groups[0].matches;
             for(auto& m : matches) {
-                auto result = m.sub_match->pattern->compile(m.sub_match, core::AuxOpVector());
+                auto result = m.sub_match->pattern->compile(m.sub_match, core::CompilationData(0, core::AuxOpVector()));
                 auto new_ops = result.operations;
                 for(auto& n_op : new_ops) {
                     ops.push_back(n_op);
@@ -599,4 +564,5 @@ namespace hfs {
     }
 }
 
-// TODO: loop continue & loop break (n)
+// TODO: loop continue & loop break (n?)
+// TODO: restructure next & depth system

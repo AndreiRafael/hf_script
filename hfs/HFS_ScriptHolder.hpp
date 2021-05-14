@@ -7,6 +7,7 @@
 #include <functional>
 
 #include "./core/HFS_OperationRunner.hpp"
+#include "./core/HFS_Operator.hpp"
 
 namespace hfs {
     class Script;
@@ -39,6 +40,8 @@ namespace hfs {
         std::vector<std::pair<BoundFunctionDef, BindableFunction>> bound_functions;
         std::vector<std::pair<BoundFunctionDef, Operation*>> bound_operations;//a cheap way to delay direct calls from start_function by a frame
 
+        std::vector<core::Operator> operators;//all defined operators
+
         std::vector<Script*> scripts;
 
         int operation_limit = -1;
@@ -48,6 +51,8 @@ namespace hfs {
         bool create_function_runner (const std::string_view function_name, const std::vector<Variable> parameters, Scope* top_scope, core::OperationRunner** new_runner);
         bool has_superior_holder(ScriptHolder* holder) const;
         bool step_runner(core::OperationRunner* runner, unsigned int runner_id, ReturnData* return_data);//returns true if operation retuned
+
+        static bool validate_operator(std::string const& symbol);
 
     public:
         ScriptHolder();
@@ -63,6 +68,7 @@ namespace hfs {
          * @return false 
          */
         bool add_script(Script* script, std::string* const error_string = nullptr);
+
         /**
          * @brief Removes a valid script from the holder
          * 
@@ -92,7 +98,7 @@ namespace hfs {
          * @return true if bounded the function correctly
          * @return false if there was already another function with the same name and parameter count bound
          */
-        bool bind_function(std::string function_name, BindableFunction function, int param_count = -1);
+        bool bind_function(std::string function_name, BindableFunction function, int param_count = -1);// TODO: min/max param range 
 
         BindableFunction* get_bound_function(const std::string_view function_name, const int param_count);
         Operation* get_script_function(const std::string_view function_name, const unsigned int param_count);
@@ -102,6 +108,20 @@ namespace hfs {
          * \returns An empty vector on error, or a vector with the variable names
          */
         std::vector<std::string> get_parameter_names(const std::string_view function_name, const unsigned int param_count);
+
+        /**
+         * @brief Get an operator given its symbol
+         * 
+         * @param symbol A string composed of one or more valid operator characters
+         * @param type The type of operator to get, single or double
+         * @param op A pointer to an operator to be filled with the operator if function returns true
+         * @return true if operator exists
+         * @return false if operator does not exist or symbol uses invalid characters
+         */
+        bool get_operator(const std::string symbol, const core::OperatorType type, core::Operator* op) const;
+
+        bool define_operator(const std::string symbol, const std::string function, const core::OperatorType type);
+        bool undefine_operator(const std::string symbol, const core::OperatorType type);
 
         /**
          * @brief Runs a function until it returns or is released. In the latter case, the function is later resumed in \ref ScriptHolder::step
@@ -140,7 +160,7 @@ namespace hfs {
          * 
          * @remarks Do not delete this Scope, it is the responsability of the Scope to do so
          */
-        Scope* get_scope() const;    
+        Scope* get_scope() const;    // TODO: this now belongs to scrpt Runner, holder is just a collection
     };
 }
 
