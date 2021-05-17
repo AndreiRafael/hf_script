@@ -101,7 +101,7 @@ namespace hfs::core {
             ++group;
         }
         bad_token = Token(TokenType::Invalid);
-        return new MatchResult(match_groups, this);
+        return new MatchResult(match_groups, this);//TODO: whose pointer is this?
     }
 
     CompilationResult TokenPattern::compile(MatchResult* result, CompilationData& aux_operation) {

@@ -109,13 +109,15 @@ namespace hfs::core {
     }
 
     Match PatternListPatternKey::internal_match(std::vector<TokenMatcher>::iterator& token_itr) const {
-        auto cpy = patterns;
-        std::sort(cpy.begin(), cpy.end(), [] (TokenPattern* a, TokenPattern* b) {
-            return a->group_count() > b->group_count();
-        });
+        //returns true if toke a is further than token b in a file
+        auto is_further = [] (Token a, Token b) {
+            return (a.line > b.line) || (a.line == b.line && a.column > b.column);
+        };
 
         Token bad_token = Token(TokenType::Invalid);
-        for(auto itr = cpy.begin(); itr != cpy.end(); ++itr) {
+        auto best_itr = token_itr;
+        MatchResult* best_result = nullptr;
+        for(auto itr = patterns.begin(); itr != patterns.end(); ++itr) {
             if(((*itr)->get_type() & type_mask) == 0) {
                 continue;//skips unwanted types
             }
@@ -124,13 +126,18 @@ namespace hfs::core {
             Token tmp_bad_token;
             auto res = (*itr)->try_match(tmp_itr, &tmp_bad_token);
             if(res != nullptr) {
-                token_itr = tmp_itr;
-                return Match(true, res);
+                if(is_further(tmp_itr->token, best_itr->token)) {
+                    best_itr = tmp_itr;
+                    best_result = res;
+                }
             }
-            int line_diff = tmp_bad_token.line - bad_token.line;
-            if(line_diff > 0 || (line_diff == 0 && tmp_bad_token.column > bad_token.column)) {
+            if(is_further(tmp_bad_token, bad_token)) {
                 bad_token = tmp_bad_token;
             }
+        }
+        if(best_result != nullptr) {
+            token_itr = best_itr;
+            return Match(true, best_result); 
         }
         return Match::failed_match(bad_token);
     }

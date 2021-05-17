@@ -44,7 +44,9 @@ namespace hfs {
             auto tp_code_line = new core::TokenPattern(core::PatternType::Definition);// value ;
             auto tp_while_loop = new core::TokenPattern(core::PatternType::Definition);// while(value) { ... }
             auto tp_if_conditional = new core::TokenPattern(core::PatternType::Definition);// if(value) { ... } else if(value) { ... } else { ... }
-
+            
+            auto tp_return_value = new core::TokenPattern(core::PatternType::Void);// return value?;
+            auto tp_release = new core::TokenPattern(core::PatternType::Void);// release;
 
             auto tp_sqr_bracket_val = new core::TokenPattern(core::PatternType::Definition);// [ list ]
             auto tp_var_retrieve = new core::TokenPattern(core::PatternType::Value);// name tp_sqr_bracket_val
@@ -55,10 +57,13 @@ namespace hfs {
             auto tp_paren_value = new core::TokenPattern(core::PatternType::Value);// ( value )
             auto tp_single_op_value = new core::TokenPattern(core::PatternType::Value);// !value
             auto tp_double_op_value = new core::TokenPattern(core::PatternType::Value);// value + value
+            auto tp_ternary_op_value = new core::TokenPattern(core::PatternType::Value);// bool ? value1 : value2
 
-            std::vector<core::TokenPattern*> midcode_patterns = { tp_sub_scope, tp_code_line, tp_while_loop, tp_if_conditional };
+
+            std::vector<core::TokenPattern*> midcode_patterns = { tp_sub_scope, tp_code_line, tp_while_loop, tp_if_conditional,
+                                                                  tp_return_value, tp_release };
             std::vector<core::TokenPattern*> value_patterns = { tp_var_retrieve, tp_var_set, tp_raw, tp_func_call, tp_paren_value,
-                                                                tp_double_op_value, tp_single_op_value };
+                                                                tp_double_op_value, tp_single_op_value, tp_ternary_op_value };
 
             tp_param_comma->add_key_data(core::PatternData(new core::TokenTypePatternKey(core::TokenType::Name)));
             tp_param_comma->add_key_data(core::PatternData(new core::TextPatternKey(",")));
@@ -111,7 +116,7 @@ namespace hfs {
                 return core::CompilationResult(vec);
             });
 
-            tp_code_line->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Value, value_patterns)));//0
+            tp_code_line->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Any, value_patterns)));//0
             tp_code_line->add_key_data(core::PatternData(new core::TextPatternKey(";")));                                            //1
             tp_code_line->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> std::vector<Operation*> {
                 auto match = res->groups[0].matches[0].sub_match;//only uses main match
@@ -220,6 +225,28 @@ namespace hfs {
                 return core::CompilationResult(vec);
             });
 
+            tp_return_value->add_key_data(core::PatternData(new core::TextPatternKey("return")));                                        //0
+            tp_return_value->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Value, value_patterns), 0, 1)); //1
+            tp_return_value->add_key_data(core::PatternData(new core::TextPatternKey(";")));                                        //2
+            tp_return_value->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
+                Operation* value_op = nullptr;
+                if(res->groups[1].matches.size() > 0) {
+                    auto value_match = res->groups[1].matches[0].sub_match;
+                    value_op = value_match->pattern->compile(value_match, core::CompilationData()).operations[0];
+                }
+                else {
+                    value_op = new RawValueOperation("null");
+                }
+
+                return core::CompilationResult({ new ReturnOperation(value_op) });
+            });
+
+            tp_release->add_key_data(core::PatternData(new core::TextPatternKey("release"))); //0
+            tp_release->add_key_data(core::PatternData(new core::TextPatternKey(";")));      //1
+            tp_release->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
+                return core::CompilationResult({ new ReleaseOperation() });
+            });
+
 
             tp_sqr_bracket_val->add_key_data(core::PatternData(new core::TextPatternKey("[")));
             tp_sqr_bracket_val->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Value, value_patterns)));
@@ -315,6 +342,27 @@ namespace hfs {
                 auto value2_op = value2_match->pattern->compile(value2_match, core::CompilationData()).operations[0];
                 
                 return core::CompilationResult({ new OperatorOperation(operator_str, value1_op, value2_op) });
+            });
+
+            tp_ternary_op_value->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Value, value_patterns))); //0
+            tp_ternary_op_value->add_key_data(core::PatternData(new core::TextPatternKey("?")));                                             //1
+            tp_ternary_op_value->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Value, value_patterns))); //2
+            tp_ternary_op_value->add_key_data(core::PatternData(new core::TextPatternKey(":")));                                             //3
+            tp_ternary_op_value->add_key_data(core::PatternData(new core::PatternListPatternKey(core::PatternType::Value, value_patterns))); //4
+            tp_ternary_op_value->set_compile_function([] (core::MatchResult* res, core::CompilationData& c_data) -> core::CompilationResult {
+                auto cond_match = res->groups[0].matches[0].sub_match;
+                auto v1_match = res->groups[2].matches[0].sub_match;
+                auto v2_match = res->groups[4].matches[0].sub_match;
+
+                auto cond_op = cond_match->pattern->compile(cond_match, core::CompilationData()).operations[0];
+                auto v1_op = new ReturnOperation(v1_match->pattern->compile(v1_match, core::CompilationData()).operations[0]);
+                auto v2_op = new ReturnOperation(v2_match->pattern->compile(v2_match, core::CompilationData()).operations[0]);
+
+                auto branch = new BranchOperation(cond_op);
+                branch->set_true_operation(v1_op);
+                branch->set_false_operation(v2_op);
+
+                return core::CompilationResult({ branch });
             });
 
             tp_func_def->add_key_data(core::PatternData(new core::TextPatternKey("func")));                    //0
@@ -529,6 +577,9 @@ namespace hfs {
                         }
                     }
                 }
+                else {
+                    char_to_token(c);
+                }
             }
         } while(step_itr(&c));
         token_vector.push_back(core::Token(core::TokenType::EndOfFile, "EOF", line, column));
@@ -555,8 +606,7 @@ namespace hfs {
                 }
             }
         }
-
-        if(mr == nullptr) {
+        else {
             push_log(LogType::Error, "Unexpected token: \"%t\"", bad_token);
         }
 
@@ -564,5 +614,7 @@ namespace hfs {
     }
 }
 
-// TODO: loop continue & loop break (n?)
-// TODO: restructure next & depth system
+// TODO: loop continue & loop break
+// TODO: restructure next & depth system. attach operations to tokens again?
+// TODO: maybe separate compile into multi_compile for patterns with many operations
+// TODO: ternary operator needs testing
